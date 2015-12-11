@@ -101,29 +101,102 @@
 				</section>
 
 				<section>
-					<h2>Вычисления на типах</h2>
-					<ul>
-						<li>Boolean на типах</li>
-						<li>type-lambda ( type |-\|[T] = { type lambda[U] = U&lt;:!&lt;T } - type alias for context bound )</li>
-						<li>пример перехода от типов к значениям через implicit'ы</li>
-					</ul>
-					<aside class="notes">
-						TODO:
-					</aside>
-					<!--   -->
-				</section>
+					<section>
+						<h2>Вычисления на типах</h2>
+						<ul>
+							<li>Boolean на типах</li>
+							<li>type-lambda ( type |-\|[T] = { type lambda[U] = U&lt;:!&lt;T } - type alias for context bound )</li>
+							<li>пример перехода от типов к значениям через implicit'ы</li>
+						</ul>
+						<a href="#" class="navigate-down">
+							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+						</a>
+						<aside class="notes">
+							TODO:
+						</aside>
+						<!--   -->
+					</section>
+					<section>
+						<p>представление Boolean в пространстве типов</p>
+						<pre><code class="scala" data-trim>
+sealed trait Bool
+sealed trait True extends Bool
+sealed trait False extends Bool
+						</code></pre>
+					</section>
+					<section>
 
-				<section data-markdown>
-					<script type="text/template">
-						## Что интересного почитать
+						<p>Виды использования типа Bool</p>
+						<pre><code class="scala" data-trim>
+type If[Bool, IfTrue, IfFalse] = ??? // проверка условия
+type &&[Bool, Bool] = ???            // And
+type ||[Bool, Bool] = ???            // Or
+type Not[Bool, Bool] = ???           // Not
+						</code></pre>
+						<p class="fragment">Как реализовать?</p>
+					</section>
+					<section>
 
-						* apocalisp - https://apocalisp.wordpress.com/ - серия статей с решением нескольких задач на типах.
-						  От простого к сложному.
-						* http://ktoso.github.io/scala-types-of-types/ - систематическое изложение всех разновидностей
-						  типов Scala с примерами. Коротко и ясно.
-						* http://typelevel.org/ - несколько библиотек, включающих shapeless, ScalaZ, Monocle, и др. Все библиотеки
-						  существенным образом используют систему типов.
-					</script>
+						<p>Всё можно реализовать через ветвление</p>
+						<pre><code class="scala" data-trim>
+sealed trait Bool {
+  type Branch[T,F]
+}
+sealed trait True extends Bool {
+  type Branch[T,F] = T
+}
+sealed trait False extends Bool {
+  type Branch[T,F] = F
+}
+						</code></pre>
+						<p class="fragment">т.е. для двух 
+						потомков есть две разные реализации типа</p>
+						<div class="fragment"><p>Чтобы облегчить жизнь компилятору, добавляют ещё один параметр UpperBound для T и F</p>
+						<pre><code class="scala" data-trim>
+type Branch2[T&lt:Upper,F&lt:Upper,Upper]
+						</code></pre>
+						</div>
+					</section>
+
+					<section>
+						<p>Остальные типы-функции:</p>
+						<pre><code class="scala" data-trim>
+type &&[A&lt;:Bool, B&lt;:Bool] = A#Branch[B,False]
+type ||[A&lt;:Bool, B&lt;:Bool] = A#Branch[True,B]
+type Not[A&lt;:Bool] = A#Branch[False,True]
+						</code></pre>
+					</section>
+
+					<section>
+						<p>Как превратить тип в значение?</p>
+						<pre class="fragment"><code class="scala" data-trim>
+case class TypeConverter[A,B](value:B)
+implicit def booleanOfType[A](implicit tc:TypeConverter[A,Boolean]) = tc.value
+implicit val trueConverter = TypeConverter[True,Boolean](true)
+						</code></pre>
+					</section>
+
+					<section>
+						<p>Пример использования (в качестве фантомного типа)</p>
+						<pre class="fragment"><code class="scala" data-trim>
+case class Service[Started&lt;:Bool](name:String, resources:Any)
+def start(service:Service[False]) = service.copy(resources = Some('resource)).asInstanceOf[Service[True]]
+def stop(service:Service[True]) = service.copy(resources = None).asInstanceOf[Service[False]]
+						</code></pre>
+					</section>
+
+					<section data-markdown>
+						<script type="text/template">
+							## Что интересного почитать
+
+							* apocalisp - https://apocalisp.wordpress.com/ - серия статей с решением нескольких задач на типах.
+							  От простого к сложному.
+							* http://ktoso.github.io/scala-types-of-types/ - систематическое изложение всех разновидностей
+							  типов Scala с примерами. Коротко и ясно.
+							* http://typelevel.org/ - несколько библиотек, включающих shapeless, ScalaZ, Monocle, и др. Все библиотеки
+							  существенным образом используют систему типов.
+						</script>
+					</section>
 				</section>
 
 				<section>
@@ -153,10 +226,22 @@ object MyApp extends App with ProductSupport {
 	val database = new AllDb
 	println(newProduct("hello"))
 }
+
+class ProductTest {
+	test("products"){
+		val db = new ProductDB{}
+		val app = new ProductSupport {
+			type Database = ProductDb
+			val database = db
+		}
+		app.newProduct("00").name should be "00"
+	}
+}
 					</code></pre>
 					<p>Code syntax highlighting courtesy of <a href="http://softwaremaniacs.org/soft/highlight/en/description/">highlight.js</a>.</p>
 				</section>
 
+				<section>
 				<section data-markdown>
 					<script type="text/template">
 						### АТД – абстрактные типы данных
@@ -175,6 +260,7 @@ object MyApp extends App with ProductSupport {
 						* фасадный тип содержит generic-параметр,
 						* сложно вывести тип generic-параметров при pattern-matching'е => требуется cast.
 					</script>
+				</section>
 				</section>
 
 				<section>
@@ -395,9 +481,11 @@ val addressToStringIso = addressToJsonIso composeIso jsValueToString
                         <div class="fragment">
                         <p>Пример использования</p>
 					<pre><code class="scala" data-trim>
-val addressToJsonIso: Iso[Address, JsValue] = ...
-val jsValueToString = Iso[JsValue,String](_.toString)(JSON.parse)
-val addressToStringIso = addressToJsonIso composeIso jsValueToString
+val addr = Address(Street("Каштановая"))
+val json = addressToStringIso.get(addr)
+// .. send receive
+val addr2 = addressToStringIso.reverseGet(json)
+assert(addr === addr2)
                     </code></pre>
                             <a href="#" class="navigate-down">
                                 <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
