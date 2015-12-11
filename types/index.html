@@ -185,6 +185,24 @@ def stop(service:Service[True]) = service.copy(resources = None).asInstanceOf[Se
 						</code></pre>
 					</section>
 
+					<section>
+						<p>Как сравнить типы на равенство?</p>
+						<pre class="fragment"><code class="scala" data-trim>
+val evidenceThatIntEqualsAny = implicitly[Int =:= Any] // error
+
+val evidenceTrue = implicitly[(True || False) =:= True] // exists
+val evidenceLong = implicitly[False#Branch[Int,Long] =:= Long] // exists
+						</code></pre>
+					</section>
+
+					<section>
+						<p>наследование?</p>
+						<pre class="fragment"><code class="scala" data-trim>
+val evidenceThatIntExtendsAny = implicitly[Int &lt;:&lt; Any] // exists
+val `evidence that Int is autocovertable to Long` = implicitly[Int &lt;%&lt; Long] // exists
+						</code></pre>
+					</section>
+
 					<section data-markdown>
 						<script type="text/template">
 							## Что интересного почитать
