@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Типы Scala в прикладных задачах</title>
+
+		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
+		<meta name="author" content="Hakim El Hattab">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/league.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+				<section>
+					<h1>Система типов Scala</h1>
+					<h3>в прикладных задачах</h3>
+					<p>
+						<small><a href="http://primetalk.ru/">Арсений Жижелев, Мэйл Ру</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+					</p>
+
+				</section>
+
+				<section>
+					<h2>Мартин Одерски</h2>
+					<div class="sl-block" data-block-type="image" style="width: 250px; height: 250px; left: 13px; top: 93px;"
+						 data-block-id="5001fe90002c934ec95b7ebe3c7b909f"><div class="sl-block-content" style="z-index: 14;"><img width="250" height="250" data-src="images/Martin_Odersky.jpg" alt="Мартин Одерски"></div></div>
+					<div class="sl-block" data-block-type="text"
+						 data-block-id="53bab9e2eda9f22b506918b35ff2254d"
+						 style="height: auto; min-width: 30px; min-height: 30px; width: 600px; left: 326px; top: 623px;">
+
+
+
+					<blockquote cite="https://ru.wikipedia.org/wiki/Одерски,_Мартин"  style="text-align: left;">
+						<p>&ldquo;<b>Мартин Одерски</b> (Martin Odersky, 1958) — немецкий учёный в области компьютерных наук и профессор EPFL в Швейцарии.</p>
+						<p>Специализируется на статическом анализе кода и языках программирования. Разработал язык программирования Scala, поддержку Generics в Java и создал текущую версию javac, компилятора языка Java.</p>
+						<p>В 2011 стал сооснователем Typesafe, компании, которая ставит своей целью поддержку и популяризацию языка Scala.&rdquo;</p>
+						<p style="text-align: right;">(Википедия)</p>
+					</blockquote>
+						</div>
+				</section>
+
+				<section>
+					<h2>Зачем вообще нужны развитые типы?</h2>
+
+					<ul>
+						<li>валидация кода на этапе компиляции. Доказательство программы</li>
+						<li class="fragment">Сохранение валидности кода в ходе рефакторинга/развития программы</li>
+						<li class="fragment">Поддержка intelli sense</li>
+						<li class="fragment">На типах тоже можно программировать ;)</li>
+					</ul>
+				</section>
+
+				<section>
+                    <h2>Некоторые особенности системы типов Scala</h2>
+
+                    <ul>
+                        <li class="fragment">generic'и с ко- и контра- вариантностью</li>
+                        <li class="fragment">implicit-параметры, выбираемые компилятором на основе типов</li>
+                        <li class="fragment">вычисления на типах, включая
+                            <ul>
+                                <li class="fragment">alias'ы типов</li>
+                                <li class="fragment">type lambda</li>
+                                <li class="fragment">конструкторы типов (типы высших порядков)</li>
+                                <li class="fragment">рекурсивные типы</li>
+                                <li class="fragment">existential-типы</li>
+                            </ul>
+
+                        </li>
+                    </ul>
+                    <!-- 						* уточнение (reification) типов, with -->
+				</section>
+
+				<section>
+					<h2>Вычисления на типах</h2>
+					<ul>
+						<li>Boolean на типах</li>
+						<li>type-lambda ( type |-\|[T] = { type lambda[U] = U&lt;:!&lt;T } - type alias for context bound )</li>
+						<li>пример перехода от типов к значениям через implicit'ы</li>
+					</ul>
+					<aside class="notes">
+						TODO:
+					</aside>
+					<!--   -->
+				</section>
+
+				<section data-markdown>
+					<script type="text/template">
+						## Что интересного почитать
+
+						* apocalisp - https://apocalisp.wordpress.com/ - серия статей с решением нескольких задач на типах.
+						  От простого к сложному.
+						* http://ktoso.github.io/scala-types-of-types/ - систематическое изложение всех разновидностей
+						  типов Scala с примерами. Коротко и ясно.
+						* http://typelevel.org/ - несколько библиотек, включающих shapeless, ScalaZ, Monocle, и др. Все библиотеки
+						  существенным образом используют систему типов.
+					</script>
+				</section>
+
+				<section>
+					<h2>Cake pattern</h2>
+					<pre><code class="scala" data-trim contenteditable>
+package types
+
+/** Часть схемы БД.*/
+trait DbSlice {}
+
+/** Часть схемы, относящейся к сущности "Продукт". */
+trait ProductDb extends DbSlice {
+	case class Product(name:String)
+	val products = TableQuery[...]
+}
+
+trait ProductSupport {
+	type Database &lt;: ProductDb
+	val database:Database
+	def newProduct(name:String) = database.Product(name)
+}
+
+class AllDb extends ProductDb
+
+object MyApp extends App with ProductSupport {
+	type Database = AllDb
+	val database = new AllDb
+	println(newProduct("hello"))
+}
+					</code></pre>
+					<p>Code syntax highlighting courtesy of <a href="http://softwaremaniacs.org/soft/highlight/en/description/">highlight.js</a>.</p>
+				</section>
+
+				<section data-markdown>
+					<script type="text/template">
+						### АТД – абстрактные типы данных
+
+						* Скрываем фактический тип за фасадным типом.
+						* Барьер абстракции – тип, видимый снаружи, не позволяет разглядеть деталей реализации.
+						* Обычно – несколько реализаций
+						* Ограничение области видимости, снижение зависимостей, проектирование абстракций
+					</script>
+				</section>
+
+				<section data-markdown>
+					<script type="text/template">
+						### GADT - обобщённые АТД или АТД с generic'ами
+
+						* фасадный тип содержит generic-параметр,
+						* сложно вывести тип generic-параметров при pattern-matching'е => требуется cast.
+					</script>
+				</section>
+
+				<section>
+					<section>
+						<h2>Линзы <i>и другая оптика (Iso, Prism, Getter/Setter)</i></h2>
+
+						<ul>
+							<li>Модификация немодифицируемых объектов.</li>
+							<li class="fragment">Конструируем новый объект, в котором изменена какая-то часть.</li>
+							<li class="fragment">Композиция линз позволяет модифицировать вложенные элементы сложных объектов.</li>
+						</ul>
+					</section>
+
+					<section >
+						<h2>Базовые типы: Getter</h2>
+						<p></p>
+						<pre><code class="scala" data-trim>
+type Getter[A,B] = A => B
+						</code></pre>
+						<p>Просто извлекает из переданного объекта какое-то значение.
+							Примером может служить функция, возвращающая значение свойства объекта.</p>
+						<pre><code class="scala" data-trim>
+case class Street(name: String, ...)
+def nameGetter = (s:Street) => s.name
+						</code></pre>
+					</section>
+
+					<section >
+						<h2>Базовые типы: Setter</h2>
+						<pre><code class="scala" data-trim>
+type Setter[A,B] = A => B => A
+						</code></pre>
+						<p>Это более хитрый тип. Принимает по сути два параметра. Объект, внутри которого надо что-то изменить,
+							и новое значение. Пример - функция, конструирующая новый объект с изменённым свойством.</p>
+						<pre><code class="scala" data-trim>
+def nameSetter = (s:Street) => (newName:String) =>
+                  s.copy(name = newName)
+						</code></pre>
+                        <div class="fragment">
+                            <p>Использование:</p>
+						<pre><code class="scala" data-trim>
+val street = Street("Вишнёвая", ...)
+val streetModified = nameSetter (street)("Яблочная")
+assert(nameGetter(streetModified) == "Яблочная")
+                        </code></pre>
+                        </div>
+					</section>
+
+					<section >
+						<h2>Линза = Getter + Setter</h2>
+						<pre><code class="scala" data-trim>
+case class Lens[A,B](get:Getter[A,B])(set:Setter[A,B])
+						</code></pre>
+						<p>Пара функций, объединённых в один объект.</p>
+                        <div class="fragment">
+						<pre><code class="scala" data-trim>
+val nameLens = Lens[Street, String](_.name)(s => n => s.copy(name = n))
+                        </code></pre>
+                        </div>
+                        <div class="fragment">
+                            <p>или</p>
+						<pre><code class="scala" data-trim>
+val nameLens = GenLens[Street](_.name)
+                        </code></pre>
+                        </div>
+						<p class="fragment">Big deal?</p>
+					</section>
+
+					<section >
+						<h2>Композиция линз</h2>
+						<pre><code class="scala" data-trim>
+def compose[A,B,C](l1:Lens[A,B], l2:Lens[B,C]):Lens[A,C] =
+  Lens(l1.get andThen l2.get)(???)
+						</code></pre>
+						<span class="fragment">
+						<pre><code class="scala" data-trim>
+def compose[A,B,C](l1:Lens[A,B], l2:Lens[B,C]):Lens[A,C] =
+  Lens(l1.get andThen l2.get)(a => c => l1.set(a,l2.set(l1.get(a))(c)))
+						</code></pre>
+						</span>
+						<p class="fragment">Композиция линз оправдывает их существование</p>
+                        <div class="fragment">
+						<pre><code class="scala" data-trim>
+case class Address(street: Street, ...)
+val streetLens = Lens[Address, Street](_.street)
+                                      (a => s => a.copy(street = s))
+val nameOfAddressLens = streetLens composeLens nameLens
+                        </code></pre>
+                        </div>
+					</section>
+
+					<!--<section >-->
+						<!--<h2>Обработка отсутствующих элементов</h2>-->
+
+						<!--<p>проблема - отсутствующие элементы. (В типизированных мапах мы эту проблему решаем.)</p>-->
+						<!--<pre><code class="scala" data-trim>-->
+<!--(List.empty[Int] applyOptional headOption set 0)       shouldEqual Nil-->
+<!--(List.empty[Int] applyOptional headOption setOption 0) shouldEqual None-->
+						<!--</code></pre>-->
+					<!--</section>-->
+				</section>
+
+                <section>
+                    <section>
+                    <h2>Why do I need this?</h2>
+	                    <img width="531" height="260" data-src="images/monocle_logo.png" alt="Monocle logo">
+						<p>Lens examples courtesy of <a href="https://github.com/julien-truffaut/Monocle">Monocle</a>, Julien Truffaut.</p>
+                        <a href="#" class="navigate-down">
+                            <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                        </a>
+                    </section>
+                    <section>
+					<p>Scala already provides getters and setters for case classes but modifying
+						nested object is verbose which makes code difficult to understand and reason about.
+						Let's have a look at some examples:</p>
+
+					<pre><code class="scala" data-trim>
+case class Street(name: String, ...)     // ... means it contains other fields
+case class Address(street: Street, ...)
+case class Company(address: Address, ...)
+case class Employee(company: Company, ...)
+                    </code></pre>
+
+                        <a href="#" class="navigate-down">
+                            <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                        </a>
+                    </section>
+                    <section>
+					<p>Let's say we have an employee and we need to set the first character of his company street name address in upper case. Here is how we could write it in vanilla Scala:</p>
+
+					<pre><code class="scala" data-trim>
+val employee: Employee = ...
+
+employee.copy(
+    company = employee.company.copy(
+        address = employee.company.address.copy(
+            street = employee.company.address.street.copy(
+                name = employee.company.address.street.name.capitalize // luckily capitalize exists
+            )
+        )
+    )
+)
+                    </code></pre>
+
+                        <a href="#" class="navigate-down">
+                            <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                        </a>
+                    </section>
+
+                    <section>
+					<p>As you can see copy is not convenient to update nested objects as we need to repeat
+                        at each level the full path to reach it.
+                        Let's see what could we do with Monocle:</p>
+
+					<pre><code class="scala" data-trim>
+val _name   : Lens[Street  , String]  = ...  // we'll see later how to build Lens
+val _street : Lens[Address , Street]  = ...
+val _address: Lens[Company , Address] = ...
+val _company: Lens[Employee, Company] = ...
+
+(company composeLens address composeLens street composeLens name).modify(_.capitalize)(employee)
+
+// you can achieve the same result with less characters using symbolic syntax
+
+(company ^|-> address ^|-> street ^|-> name).modify(_.capitalize)(employee)
+                    </code></pre>
+
+					<p>ComposeLens takes two Lens, one from A to B and another from B to C and creates a third Lens from A to C. Therefore, after composing company, address, street and name, we obtain a Lens from Employee to String (the street name).</p>
+						<a href="#" class="navigate-down">
+							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+						</a>
+                    </section>
+                    <section>
+                        <h2>Создание линз</h2>
+                        <ol>
+                            <li>Вручную</li>
+                            <li>Black box макрос для каждого свойства case class'а</li>
+                            <li>White box макрос для целого case class'а</li>
+                        </ol>
+					<pre><code class="scala" data-trim>
+val _name1 = Lens[Street, String](_.name)(s => n => s.copy(name = n))
+val _name2 = GenLens[Street](_.name)
+@Lenses
+case class Street(name:String,...)
+// val _name3 = Street.name
+                    </code></pre>
+                        <a href="#/9">
+                            <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Up arrow" style="transform: rotate(180deg); -webkit-transform: rotate(180deg);">
+                        </a>
+                    </section>
+				</section>
+
+				<section>
+					<section >
+							<h2>Iso</h2>
+							<ul>
+								<li>Линзы фокусируются на части объекта</li>
+								<li class="fragment">Изоморфизмы Iso - конвертируют одну форму данных в другую и обратно.</li>
+								<li class="fragment">Важно! Взаимно-однозначное соответствие.</li>
+							</ul>
+                        <div class="fragment">
+                            <ul>
+                            <li>Для изоморфизмов также есть композиция. Выражает последовательную композицию нескольких конвертаций.</li>
+                            </ul>
+                            <a href="#" class="navigate-down">
+                                <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                            </a>
+                        </div>
+					</section>
+
+					<section>
+						<p>Типы :</p>
+					<pre><code class="scala" data-trim>
+val addressToJsonIso: Iso[Address, JsValue] = ...
+val jsValueToString = Iso[JsValue,String](_.toString)(JSON.parse)
+val addressToStringIso = addressToJsonIso composeIso jsValueToString
+                    </code></pre>
+                        <div class="fragment">
+                        <p>Пример использования</p>
+					<pre><code class="scala" data-trim>
+val addressToJsonIso: Iso[Address, JsValue] = ...
+val jsValueToString = Iso[JsValue,String](_.toString)(JSON.parse)
+val addressToStringIso = addressToJsonIso composeIso jsValueToString
+                    </code></pre>
+                            <a href="#" class="navigate-down">
+                                <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                            </a>
+                        </div>
+					</section>
+				</section>
+
+                <section>
+                    <section>
+                        <h1>Типизированные Map'ы</h1>
+                    </section>
+
+                    <section>
+                        <ul>
+                            <li>Отношение между объектом и значением его свойства</li>
+                        </ul>
+                        <aside class="notes">Отношение - бинарное, математическое.</aside>
+					<pre><code class="scala" data-trim>
+type Relation[A,B] = ... // like Lens[A,B]
+object Street {
+  val name:Relation[Street,String] = ???
+}
+type RelationTypeClass[R] = ...
+def getter[A,B,R&lt;:Relation[A,B]](rel:Relation[A,B])(implicit rtc:RelationTypeClass[R]):A => B = a=>rtc.get(a,rel)
+                    </code></pre>
+                        <a href="#" class="navigate-down">
+                            <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                        </a>
+                    </section>
+                    <section>
+                        <ul>
+                            <li>Хранение данных не в case-class'ах</li>
+                            <li>Создаём map ключ-значение. В качестве ключа - типизированный идентификатор Relation[A,B], например,</li>
+                        </ul>
+					<pre><code class="scala" data-trim>
+case class RelationId[A,B](name:String)(implicit val typeTag:TypeTag[B]){
+  type RType = B // тип для повторного использования
+}
+case class TypedMap[E](map:Map[RelationId[A,_], _]) // условно
+                    </code></pre>
+                        <div class="fragment">
+						<ul>
+							<li>Создаём фантомный тип Street и несколько свойств-отношений:</li>
+						</ul>
+					<pre><code class="scala" data-trim>
+abstract final class Street
+object Street {
+  val name = RelationId[Street,String]("name")
+}
+                    </code></pre>
+                            <a href="#" class="navigate-down">
+                                <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                            </a>
+                        </div>
+                    </section>
+                    <section>
+
+                        <h2>Фантомные типы</h2>
+                        <ul>
+                            <li>Отдельная независимая иерархия(решётка наследования), которую легко наблюдать</li>
+                            <li>Возможность произвольного распределения свойств между классами предметной области.
+                                Достаточно выбрать набор trait'ов, к которым будут привязаны свойства.</li>
+                        </ul>
+                        <a href="#" class="navigate-down">
+                            <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+                        </a>
+                    </section>
+                    <section>
+
+                        <h2>Обособленные отношения/атрибуты</h2>
+                        <ul>
+                            <li>Повторное использование свойств для любых объектов</li>
+                            <li>Повторное использование типов, объявленных в единственной точке</li>
+                            <li>Нет привязки к способу хранения данных. Данные можно представлять в модели,
+                                в таблице БД, в интерфейсе совершенно по-разному.</li>
+                        </ul>
+                        <aside class="notes">
+                            Например, можно использовать типы для объявления схемы БД.
+                        </aside>
+                        <a href="#/12">
+                            <img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Up arrow" style="transform: rotate(180deg); -webkit-transform: rotate(180deg);">
+                        </a>
+                    </section>
+                </section>
+                <section data-markdown>
+                    <script type="text/template">
+                        ## Выводы
+                        Линзы
+                        * поддерживают композицию
+                        * формируют "онтологию" низкоуровневыми средствами (парой простейших функций)
+
+                        Типизированные map'ы (+ к возможностям линз)
+                        * позволяют из ключей сформировать линзы, и пользоваться всеми их преимуществами,
+                        * поддерживают развитую "онтологию" (описание свойств с метаинформацией)
+                        * обеспечивают reflection
+                        * гибкая типизация на основе фантомных типов
+                        * есть возможность выполнить сразу много изменений на вложенных объектах
+                        * есть поддержка неполных/отсутствующих данных
+                    </script>
+                </section>
+
+<!--
+                <section>
+					<h2>Point of View</h2>
+					<p>
+						Press <strong>ESC</strong> to enter the slide overview.
+					</p>
+					<p>
+						Hold down alt and click on any element to zoom in on it using <a href="http://lab.hakim.se/zoom-js">zoom.js</a>. Alt + click anywhere to zoom back out.
+					</p>
+				</section>
+
+				<section>
+					<section id="fragments">
+						<h2>Fragments</h2>
+						<p>Hit the next arrow...</p>
+						<p class="fragment">... to step through ...</p>
+						<p><span class="fragment">... a</span> <span class="fragment">fragmented</span> <span class="fragment">slide.</span></p>
+
+						<aside class="notes">
+							This slide has fragments which are also stepped through in the notes window.
+						</aside>
+					</section>
+					<section>
+						<h2>Fragment Styles</h2>
+						<p>There's different types of fragments, like:</p>
+						<p class="fragment grow">grow</p>
+						<p class="fragment shrink">shrink</p>
+						<p class="fragment fade-out">fade-out</p>
+						<p class="fragment current-visible">current-visible</p>
+						<p class="fragment highlight-red">highlight-red</p>
+						<p class="fragment highlight-blue">highlight-blue</p>
+					</section>
+				</section>
+
+				<section id="transitions">
+					<h2>Transition Styles</h2>
+					<p>
+						You can select from different transitions, like: <br>
+						<a href="?transition=none#/transitions">None</a> -
+						<a href="?transition=fade#/transitions">Fade</a> -
+						<a href="?transition=slide#/transitions">Slide</a> -
+						<a href="?transition=convex#/transitions">Convex</a> -
+						<a href="?transition=concave#/transitions">Concave</a> -
+						<a href="?transition=zoom#/transitions">Zoom</a>
+					</p>
+				</section>
+
+				<section id="themes">
+					<h2>Themes</h2>
+					<p>
+						reveal.js comes with a few themes built in: <br>
+						 Hacks to swap themes after the page has loaded. Not flexible and only intended for the reveal.js demo deck.
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/black.css'); return false;">Black (default)</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/white.css'); return false;">White</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/league.css'); return false;">League</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/sky.css'); return false;">Sky</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/beige.css'); return false;">Beige</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/simple.css'); return false;">Simple</a> <br>
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/serif.css'); return false;">Serif</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/blood.css'); return false;">Blood</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/night.css'); return false;">Night</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/moon.css'); return false;">Moon</a> -
+						<a href="#" onclick="document.getElementById('theme').setAttribute('href','css/theme/solarized.css'); return false;">Solarized</a>
+					</p>
+				</section>
+
+				<section>
+					<section data-background="#dddddd">
+						<h2>Slide Backgrounds</h2>
+						<p>
+							Set <code>data-background="#dddddd"</code> on a slide to change the background color. All CSS color formats are supported.
+						</p>
+						<a href="#" class="navigate-down">
+							<img width="178" height="238" data-src="https://s3.amazonaws.com/hakim-static/reveal-js/arrow.png" alt="Down arrow">
+						</a>
+					</section>
+					<section data-background="https://s3.amazonaws.com/hakim-static/reveal-js/image-placeholder.png">
+						<h2>Image Backgrounds</h2>
+						<pre><code class="hljs">&lt;section data-background="image.png"&gt;</code></pre>
+					</section>
+					<section data-background="https://s3.amazonaws.com/hakim-static/reveal-js/image-placeholder.png" data-background-repeat="repeat" data-background-size="100px">
+						<h2>Tiled Backgrounds</h2>
+						<pre><code class="hljs" style="word-wrap: break-word;">&lt;section data-background="image.png" data-background-repeat="repeat" data-background-size="100px"&gt;</code></pre>
+					</section>
+					<section data-background-video="https://s3.amazonaws.com/static.slid.es/site/homepage/v1/homepage-video-editor.mp4,https://s3.amazonaws.com/static.slid.es/site/homepage/v1/homepage-video-editor.webm" data-background-color="#000000">
+						<div style="background-color: rgba(0, 0, 0, 0.9); color: #fff; padding: 20px;">
+							<h2>Video Backgrounds</h2>
+							<pre><code class="hljs" style="word-wrap: break-word;">&lt;section data-background-video="video.mp4,video.webm"&gt;</code></pre>
+						</div>
+					</section>
+					<section data-background="http://i.giphy.com/90F8aUepslB84.gif">
+						<h2>... and GIFs!</h2>
+					</section>
+				</section>
+
+				<section data-transition="slide" data-background="#4d7e65" data-background-transition="zoom">
+					<h2>Background Transitions</h2>
+					<p>
+						Different background transitions are available via the backgroundTransition option. This one's called "zoom".
+					</p>
+					<pre><code class="hljs">Reveal.configure({ backgroundTransition: 'zoom' })</code></pre>
+				</section>
+
+				<section data-transition="slide" data-background="#b5533c" data-background-transition="zoom">
+					<h2>Background Transitions</h2>
+					<p>
+						You can override background transitions per-slide.
+					</p>
+					<pre><code class="hljs" style="word-wrap: break-word;">&lt;section data-background-transition="zoom"&gt;</code></pre>
+				</section>
+
+				<section>
+					<h2>Tabular Tables</h2>
+					<table>
+						<thead>
+							<tr>
+								<th>Item</th>
+								<th>Value</th>
+								<th>Quantity</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Apples</td>
+								<td>$1</td>
+								<td>7</td>
+							</tr>
+							<tr>
+								<td>Lemonade</td>
+								<td>$2</td>
+								<td>18</td>
+							</tr>
+							<tr>
+								<td>Bread</td>
+								<td>$3</td>
+								<td>2</td>
+							</tr>
+						</tbody>
+					</table>
+				</section>
+
+				<section>
+					<h2>Clever Quotes</h2>
+					<p>
+						These guys come in two forms, inline: <q cite="http://searchservervirtualization.techtarget.com/definition/Our-Favorite-Technology-Quotations">
+						&ldquo;The nice thing about standards is that there are so many to choose from&rdquo;</q> and block:
+					</p>
+					<blockquote cite="http://searchservervirtualization.techtarget.com/definition/Our-Favorite-Technology-Quotations">
+						&ldquo;For years there has been a theory that millions of monkeys typing at random on millions of typewriters would
+						reproduce the entire works of Shakespeare. The Internet has proven this theory to be untrue.&rdquo;
+					</blockquote>
+				</section>
+
+				<section>
+					<h2>Intergalactic Interconnections</h2>
+					<p>
+						You can link between slides internally,
+						<a href="#/2/3">like this</a>.
+					</p>
+				</section>
+
+				<section>
+					<h2>Speaker View</h2>
+					<p>There's a <a href="https://github.com/hakimel/reveal.js#speaker-notes">speaker view</a>. It includes a timer, preview of the upcoming slide as well as your speaker notes.</p>
+					<p>Press the <em>S</em> key to try it out.</p>
+
+					<aside class="notes">
+						Oh hey, these are some notes. They'll be hidden in your presentation, but you can see them if you open the speaker notes window (hit 's' on your keyboard).
+					</aside>
+				</section>
+
+				<section>
+					<h2>Export to PDF</h2>
+					<p>Presentations can be <a href="https://github.com/hakimel/reveal.js#pdf-export">exported to PDF</a>, here's an example:</p>
+					<iframe src="https://www.slideshare.net/slideshow/embed_code/42840540" width="445" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:3px solid #666; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
+				</section>
+
+				<section>
+					<h2>Global State</h2>
+					<p>
+						Set <code>data-state="something"</code> on a slide and <code>"something"</code>
+						will be added as a class to the document element when the slide is open. This lets you
+						apply broader style changes, like switching the page background.
+					</p>
+				</section>
+
+				<section data-state="customevent">
+					<h2>State Events</h2>
+					<p>
+						Additionally custom events can be triggered on a per slide basis by binding to the <code>data-state</code> name.
+					</p>
+					<pre><code class="javascript" data-trim contenteditable style="font-size: 18px;">
+Reveal.addEventListener( 'customevent', function() {
+	console.log( '"customevent" has fired' );
+} );
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Take a Moment</h2>
+					<p>
+						Press B or . on your keyboard to pause the presentation. This is helpful when you're on stage and want to take distracting slides off the screen.
+					</p>
+				</section>
+
+				<section>
+					<h2>Much more</h2>
+					<ul>
+						<li>Right-to-left support</li>
+						<li><a href="https://github.com/hakimel/reveal.js#api">Extensive JavaScript API</a></li>
+						<li><a href="https://github.com/hakimel/reveal.js#auto-sliding">Auto-progression</a></li>
+						<li><a href="https://github.com/hakimel/reveal.js#parallax-background">Parallax backgrounds</a></li>
+						<li><a href="https://github.com/hakimel/reveal.js#keyboard-bindings">Custom keyboard bindings</a></li>
+					</ul>
+				</section>
+
+				<section style="text-align: left;">
+					<h1>THE END</h1>
+					<p>
+						- <a href="http://slides.com">Try the online editor</a> <br>
+						- <a href="https://github.com/hakimel/reveal.js">Source code &amp; documentation</a>
+					</p>
+				</section>
+-->
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
