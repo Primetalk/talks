@@ -19,10 +19,10 @@ object Booleans {
   type &&[A<:Bool, B<:Bool] = A#Branch[B,False]
   type ||[A<:Bool, B<:Bool] = A#Branch[True,B]
 
-  case class TypeConverter[A,B](value:B)
-  implicit def booleanOfType[A](implicit tc:TypeConverter[A,Boolean]) = tc.value
-  implicit val trueConverter = TypeConverter[True,Boolean](true)
-  implicit val falseConverter = TypeConverter[False,Boolean](false)
+//  case class TypeConverter[A,B](value:B)
+//  implicit def booleanOfType[A](implicit tc:TypeConverter[A,Boolean]) = tc.value
+//  implicit val trueConverter = TypeConverter[True,Boolean](true)
+//  implicit val falseConverter = TypeConverter[False,Boolean](false)
 
   case class Service[Started<:Bool](name:String, resources:Any)
   def start(service:Service[False]) = service.copy(resources = Some('resource)).asInstanceOf[Service[True]]
@@ -33,6 +33,17 @@ object Booleans {
   }
 
   /// Type-Lambdas
-  type _1[F[_,_],A] = {type Lambda[Z] = F[Z,A]}
-  type _2[F[_,_],A] = {type Lambda[Z] = F[A,Z]}
+  type _1[F[_,_],A] = {type λ[Z] = F[Z,A]}
+  type _2[F[_,_],A] = {type λ[Z] = F[A,Z]}
+
+  case class TypeConverter[A,B](value:B){ type Value = B; def _value:Value = value}
+  implicit def valueOfType[A](implicit tc:TypeConverter[A,_]):tc.Value = tc._value
+
+  implicit val trueConverter = TypeConverter[True,Boolean](true)
+  implicit val falseConverter = TypeConverter[False,Boolean](false)
+
+  val _true = valueOfType[True]
+
+  require(_true)
+
 }
