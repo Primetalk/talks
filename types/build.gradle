@@ -1,0 +1,28 @@
+ext {
+    scalaMajorVersion = '2.11'
+    scalaFullVersion = "${scalaMajorVersion}.7"
+
+
+    scalaLib = "org.scala-lang:scala-library:${scalaFullVersion}"
+    scalaReflect = "org.scala-lang:scala-reflect:${scalaFullVersion}"
+
+    scalaTest = "org.scalatest:scalatest_${scalaMajorVersion}:2.2.5"
+    junit = 'junit:junit:4.12'
+}
+apply plugin: 'java'
+apply plugin: 'scala'
+
+sourceCompatibility = 1.8
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile scalaLib
+    compile scalaReflect
+
+    testCompile junit
+    testCompile scalaTest
+}

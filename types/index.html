@@ -52,21 +52,14 @@
 
 				<section>
 					<h2>Мартин Одерски</h2>
-					<div class="sl-block" data-block-type="image" style="width: 250px; height: 250px; left: 13px; top: 93px;"
-						 data-block-id="5001fe90002c934ec95b7ebe3c7b909f"><div class="sl-block-content" style="z-index: 14;"><img width="250" height="250" data-src="images/Martin_Odersky.jpg" alt="Мартин Одерски"></div></div>
-					<div class="sl-block" data-block-type="text"
-						 data-block-id="53bab9e2eda9f22b506918b35ff2254d"
-						 style="height: auto; min-width: 30px; min-height: 30px; width: 600px; left: 326px; top: 623px;">
-
-
-
-					<blockquote cite="https://ru.wikipedia.org/wiki/Одерски,_Мартин"  style="text-align: left;">
+					<blockquote cite="https://ru.wikipedia.org/wiki/Одерски,_Мартин"  style="text-align: left; font-size:70%;">
+						<div class="sl-block" data-block-type="image" style="width: 250px; height: 250px; padding-right: 15px; padding-bottom: 20px; float:left;"
+								data-block-id="5001fe90002c934ec95b7ebe3c7b909f"><div class="sl-block-content" style="z-index: 14;"><img width="250" height="250" data-src="images/Martin_Odersky.jpg" alt="Мартин Одерски"/></div></div>
 						<p>&ldquo;<b>Мартин Одерски</b> (Martin Odersky, 1958) — немецкий учёный в области компьютерных наук и профессор EPFL в Швейцарии.</p>
-						<p>Специализируется на статическом анализе кода и языках программирования. Разработал язык программирования Scala, поддержку Generics в Java и создал текущую версию javac, компилятора языка Java.</p>
+						<p>Специализируется на статическом анализе кода и языках программирования. Разработал Scala, поддержку Generics в Java, создал текущую версию javac.</p>
 						<p>В 2011 стал сооснователем Typesafe, компании, которая ставит своей целью поддержку и популяризацию языка Scala.&rdquo;</p>
-						<p style="text-align: right;">(Википедия)</p>
+						<p style="float: right;">(Википедия)</p>
 					</blockquote>
-						</div>
 				</section>
 
 				<section>
@@ -279,6 +272,60 @@ class ProductTest {
 						* сложно вывести тип generic-параметров при pattern-matching'е => требуется cast.
 					</script>
 				</section>
+
+
+
+					<section>
+						<pre><code class="scala" data-trim>
+abstract class Exp[A] {
+	def eval = this match {
+		case LitInt(i)       => i
+		case LitBool(b)      => b
+		case Add(e1, e2)     => e1.eval + e2.eval
+		case Mul(e1, e2)     => e1.eval * e2.eval
+		case Cond(b,thn,els) => if ( b.eval ) { thn.eval } else { els.eval }
+		case Eq(e1,e2)       => e1.eval == e2.eval
+	}
+}
+
+case class LitInt(i: Int)                                     extends Exp[Int]
+case class LitBool(b: Boolean)                                extends Exp[Boolean]
+case class Add(e1: Exp[Int], e2: Exp[Int])                    extends Exp[Int]
+case class Mul(e1: Exp[Int], e2: Exp[Int])                    extends Exp[Int]
+case class Cond[A](b: Exp[Boolean], thn: Exp[A], els: Exp[A]) extends Exp[A]
+case class Eq[A](e1: Exp[A], e2: Exp[A])                      extends Exp[Boolean]
+						</code></pre>
+
+						<p>GADT example courtesy of <a href="http://lambdalog.seanseefried.com/posts/2011-11-22-gadts-in-scala.html">Haskell GADTs in Scala</a>, Sean Seefried.</p>
+						<p class="fragment">К сожалению, не компилируется...</p>
+					</section>
+					<section>
+						<pre><code class="scala" data-trim>
+object Exp {
+	def evalAny[A](e: Exp[A]): A = e match {
+		case LitInt(i)         => i
+		case LitBool(b)        => b
+		case Add(e1, e2)       => e1.eval + e2.eval
+		case Mul(e1, e2)       => e1.eval * e2.eval
+		case Cond(b, thn, els) => if (b.eval) { thn.eval } else { els.eval }
+		case Eq(e1, e2)        => e1.eval == e2.eval
+	}
+}
+
+abstract class Exp[A] {
+	def eval: A = Exp.evalAny(this)
+}
+
+case class LitInt(i: Int)                                     extends Exp[Int]
+case class LitBool(b: Boolean)                                extends Exp[Boolean]
+case class Add(e1: Exp[Int], e2: Exp[Int])                    extends Exp[Int]
+case class Mul(e1: Exp[Int], e2: Exp[Int])                    extends Exp[Int]
+case class Cond[A](b: Exp[Boolean], thn: Exp[A], els: Exp[A]) extends Exp[A]
+case class Eq[A](e1: Exp[A], e2: Exp[A])                      extends Exp[Boolean]
+						</code></pre>
+
+						<p class="fragment">Здесь компилятор вызывает метод с уже известным generic-параметром.</p>
+					</section>
 				</section>
 
 				<section>
