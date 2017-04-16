@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-    <title>reveal.js</title>
+    <title>Typed ontology</title>
 
     <link rel="stylesheet" href="reveal-js/css/reveal.css">
     <link rel="stylesheet" href="reveal-js/css/theme/black.css">
@@ -101,6 +101,12 @@ case class Address(
         <section style="text-align: left">
           <p>Ontology to the rescue:</p>
             <pre><code class="scala" data-trim>
+sealed trait DomainEntity
+
+abstract final class Person extends DomainEntity
+
+abstract final class Address extends DomainEntity
+
 object person extends SchemaBuilder[Person] {
   val name = property[String]
   val address = property[Record[Address]]
@@ -116,12 +122,13 @@ object address extends SchemaBuilder[Address] {
         <section style="text-align: left">
           <p>Data example:</p>
             <pre><code class="scala" data-trim>
-val alice = Person(
+val alice1 = Person(
   name = "Alice",
   address = Address(
     postalIndex = "123456",
     street = "Blueberry street, 8"
-  )
+  ),
+  dob = ??? // unknown
 )
 val alice2 = person.record(
   person.name := "Alice",
