@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>reveal.js</title>
+
+    <link rel="stylesheet" href="reveal-js/css/reveal.css">
+    <link rel="stylesheet" href="reveal-js/css/theme/black.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>Typed ontology</h1>
+          <h3>in applications</h3>
+          <p>
+            <small><a href="http://primetalk.ru/">Arseniy Zhizhelev, Primetalk</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+          </p>
+
+        </section>
+
+        <section style="text-align: left">
+          <h3>Plan</h3>
+          <ul>
+            <li>intro</li>
+            <li>data representation needs</li>
+            <li>simple domain model</li>
+            <li>shortcomings of case classes</li>
+            <li>ontology to the rescue</li>
+            <li>data representations - tmap, json, case-classes + lenses, database, etc.</li>
+            <li>technical details - meta, metameta</li>
+            <li>architectural influence</li>
+            <li>conclusion</li>
+          </ul>
+        </section>
+        <section style="text-align: left">
+          <p>Data representation needs:</p>
+          <ul>
+            <li>sparse/incomplete/incorrect data representation
+              <ul>
+                <li>db identifiers are not available for new instances;</li>
+                <li>some data might not be available immediately;</li>
+                <li>when parsing data from external sources, we might encounter errors with certain properties.</li>
+              </ul>
+            </li>
+            <li>events about separate properties: property change/remove/new value;
+              collection changes add/remove; subscription to the events</li>
+            <li>associating runtime metainformation
+              (description, type information, predicates, alternative names) with properties</li>
+            <!--<li>schema definition</li>-->
+          </ul>
+          <p>The needs differ in various layers of application. DB needs ids, UI needs UI-control hints,
+              business logic needs constraints.</p>
+        </section>
+        <section style="text-align: left">
+          <p>Simple domain model</p>
+          <pre><code class="scala" data-trim>
+sealed trait DomainEntity
+
+case class Person(
+  name: String,
+  address: Address,
+  dob: LocalDate
+) extends DomainEntity
+
+case class Address(
+  postalIndex: String,
+  street: String
+) extends DomainEntity
+          </code></pre>
+        </section>
+        <section style="text-align: left">
+          <p>Shortcomings of case classes:</p>
+          <ul>
+            <li>sparse data
+              <ul>
+                <li>different sets of case classes in different layers + per field data copying;</li>
+                <li>optional fields;</li>
+                <li>fields of type `Try`.</li>
+              </ul>
+            </li>
+            <li>events are represented as unrelated case classes with manual event application</li>
+            <li>runtime metainformation as annotations + reflection</li>
+            <!--<li>schema definition</li>-->
+          </ul>
+        </section>
+        <section style="text-align: left">
+          <p>Ontology to the rescue:</p>
+            <pre><code class="scala" data-trim>
+object person extends SchemaBuilder[Person] {
+  val name = property[String]
+  val address = property[Record[Address]]
+  val dob = property[LocalDate]
+}
+
+object address extends SchemaBuilder[Address] {
+  val postalIndex = property[String]
+  val street = property[String]
+}
+          </code></pre>
+        </section>
+        <section style="text-align: left">
+          <p>Data example:</p>
+            <pre><code class="scala" data-trim>
+val alice = Person(
+  name = "Alice",
+  address = Address(
+    postalIndex = "123456",
+    street = "Blueberry street, 8"
+  )
+)
+val alice2 = person.record(
+  person.name := "Alice",
+  person.address := address.record(
+    address.postalIndex := "12345",
+    address.street := "Blueberry street, 8"
+  )
+)
+            </code></pre>
+        </section>
+        <section>
+          <p>Data representations</p>
+          <ul>
+            <li>typed map;</li>
+            <li>json;</li>
+            <li>case classes + lenses;</li>
+            <li>HList;</li>
+            <li>database row;</li>
+            <li>...</li>
+          </ul>
+        </section>
+        <section style="text-align: left">
+          <p>Data representations with ontology:</p>
+          <ul>
+            <li>sparse data
+              <ul>
+                <li>typed maps and json are map-like structures that naturally represent absence;</li>
+                <li>apart from ordinary data, we may keep errors associated with property in the same record.</li>
+              </ul>
+            </li>
+            <li>it's easy to capture event data about separate properties - just refer to a property by it's ontological `PropertyId`;</li>
+            <li>any metainformation can be associated with property either in separate maps, or directly in the
+                `PropertyId` class</li>
+            <!--<li>schema definition</li>-->
+          </ul>
+          <p>As there are various data representations, they can be used in various layers of application to
+              fit their needs. </p>
+        </section>
+        <section style="text-align: left">
+          <p>Architectural perspective of the ontology</p>
+          <ul>
+            <li>single place for domain model representation</li>
+            <li>single domain language for the complete application</li>
+            <li>code generation (often with macros in the single compiler pass) of various data representations -
+                database schemas, case classes, etc.</li>
+            <li>automatic data transfer/transformation between application layers</li>
+            <li>natural event sourcing implementation</li>
+            <li>UI hints and constraints</li>
+            <!--<li>schema definition</li>-->
+          </ul>
+        </section>
+        <section style="text-align: left">
+          <p>Conclusion</p>
+          <ul>
+            <li>typed ontology - single source of domain model for application</li>
+            <li>compile time safety</li>
+            <li>wide range of applications - sparse data representation, event sourcing, etc.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <script src="reveal-js/lib/js/head.min.js"></script>
+    <script src="reveal-js/js/reveal.js"></script>
+
+    <script>
+      // More info https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+          { src: 'reveal-js/plugin/markdown/marked.js' },
+          { src: 'reveal-js/plugin/markdown/markdown.js' },
+          { src: 'reveal-js/plugin/notes/notes.js', async: true },
+          { src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+        ]
+      });
+    </script>
+  </body>
+</html>
