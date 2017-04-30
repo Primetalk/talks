@@ -30,9 +30,36 @@
           <p>
             <small><a href="http://primetalk.ru/">Arseniy Zhizhelev, Primetalk</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
           </p>
+          <aside class="notes">
+            <p>Hello everyone. My name is Arseniy Zhizhelev, and I'm going to present an interesting approach of data modelling
+              that I've used in a few projects.</p>
+            TODO: Add meta-meta diagram/code examples?
+          </aside>
 
         </section>
 
+        <!--
+Hello there Arseniy,
+
+Thanks for sending along the PDF. Here is some feedback on the slides:
+
+1. Like the use of an intro slide.
+Is there any way you can make it have less text?
+One thought is to get rid of the text after the hyphens.
+
+2. Some of the slides have a lot of text on them.
+Can you reduce the text to just the highlights and talk about the details.
+The audience tends to try to read slides with a lot of text on them and then they aren't listening to you.
+
+3. Some of the slides are blank. Help me understand the reasoning behind that.
+I feel like I am missing something.
+
+Please take some time to clean up the slides and as a next step,
+prepare a video recording of you giving the talk.
+I can then provide feedback on the content of the talk and how well it fits together.
+
+Thanks!
+        -->
         <section style="text-align: left">
           <h3>Plan</h3>
           <ul>
@@ -41,33 +68,52 @@
             <li>simple domain model</li>
             <li>shortcomings of case classes</li>
             <li>ontology to the rescue</li>
-            <li>data representations - tmap, json, case-classes + lenses, database, etc.</li>
-            <li>technical details - meta, metameta</li>
+            <li>data representations</li>
+            <li>technical details</li>
             <li>architectural influence</li>
             <li>conclusion</li>
           </ul>
+          <aside class="notes">
+            <p>
+              Here is the outline of this talk. After a small introduction we'll discuss _ data representation needs
+            _ based on a  simple domain model example. We'll see the shortcomings of traditional `case classes`
+            and move on to the ontology way of describing the same domain model. Ontology gives freedom of choosing a
+            particular data representation to meet the actual needs _ of the application layer. One may use
+            - typed maps, json,  case-classes with lenses, database, and other forms of data.
+            </p><p>
+            Then we'll take a quick look _  on how is this approach organized _ including abstraction layers _ like
+            meta, and meta-of-meta.
+            </p><p>
+            And discuss the influence _ of the typed ontology approach _ on the application structure.
+            </p>
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Data representation needs:</p>
+          <b>Data representation needs</b>
           <ul>
-            <li>sparse/incomplete/incorrect data representation
-              <ul>
-                <li>db identifiers are not available for new instances;</li>
-                <li>some data might not be available immediately;</li>
-                <li>when parsing data from external sources, we might encounter errors with certain properties.</li>
-              </ul>
-            </li>
-            <li>events about separate properties: property change/remove/new value;
-              collection changes add/remove; subscription to the events</li>
-            <li>associating runtime metainformation
-              (description, type information, predicates, alternative names) with properties</li>
+            <li>sparse/incomplete/incorrect data representation</li>
+            <li class="fragment">events about isolated properties</li>
+            <li class="fragment">property runtime metainformation</li>
             <!--<li>schema definition</li>-->
           </ul>
-          <p>The needs differ in various layers of application. DB needs ids, UI needs UI-control hints,
-              business logic needs constraints.</p>
+          <i class="fragment">Single data representation does not work for various layers of application</i>
+          <aside class="notes">
+            <p>Various layers of application _ have different data representation _ needs. Very often some layers
+            need to represent incomplete data. For instance, we may not have database identifiers at some point,
+              or we may fill-in a form _ in a few steps. When we obtain data from external sources,
+              we might encounter 'invalid values in certain properties.</p>
+            <p>[NF] Another important use case is the event-driven architectures or CQRS. Events often contain very limited
+            information about entities, like single property change, or _ collection element _ addition or removal.
+              We may want to subscribe to changes of some of the properties.</p>
+            <p>[NF] Many applications require associating runtime metainformation with properties. For example, we may want
+              to know the description of a property, [O]alternative names, it's runtime type, UI-control hints. We may want to have some
+              property constraints that can be checked in a few layers of application.</p>
+            <p>[NF] As we may see, the needs differ _ in various layers of application _ and
+              we may have to use different forms of data.</p>
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Simple domain model</p>
+          <b>Simple domain model</b>
           <pre><code class="scala" data-trim>
 sealed trait DomainEntity
 
@@ -82,45 +128,109 @@ case class Address(
   street: String
 ) extends DomainEntity
           </code></pre>
+          <aside class="notes">
+            Let's consider a simple domain model like a person with a few attributes and an inner record - `Address`.
+            Using case classes we define two things - data storage and semantic information
+            about the data structure - property names and their types. These two things are inseparable from one another.
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Shortcomings of case classes:</p>
+          <b>Shortcomings of case classes</b>
           <ul>
             <li>sparse data
               <ul>
-                <li>different sets of case classes in different layers + per field data copying;</li>
+                <li>sets of case classes + per field data copying;</li>
                 <li>optional fields;</li>
-                <li>fields of type `Try`.</li>
+                <li>fields of type `Try`/`Either`/`\/`.</li>
               </ul>
             </li>
-            <li>events are represented as unrelated case classes with manual event application</li>
-            <li>runtime metainformation as annotations + reflection</li>
+            <li class="fragment">events are unrelated case classes  + manual event application</li>
+            <li class="fragment">runtime metainformation = annotations + reflection</li>
             <!--<li>schema definition</li>-->
           </ul>
+          <aside class="notes">
+            <p>Let's see _ how `case classes` work _ for the various data representation needs.</p>
+            <p>For incomplete data representation we will often see different sets of case classes in
+            different layers and have to manually copy the data from one representation to another.
+              Another often seen solution is
+            to declare some of the fields as optional and check the presence of data every time we access the property.</p>
+            <p>If we want to preserve the conversion error, then `Try` or [ˈaɪðə]`Either` might be used instead of the `Option`.</p>
+
+            <p>[NF] For capturing events _ we have to implement _ a dedicated set of classes and
+            an associated special interpreter _ that will apply the events to data. There is almost no way
+              to reuse property names or types or create a versatile interpreter.
+            </p>
+            <p>[NF] To preserve metainformation along with the property _ we do have some mechanism in place.
+              We can access metainformation using annotations and reflection.
+              Unfortunately, it is very constrained and really not the first-class. For instance, we cannot
+              associate a type class instance with rich logic, nor we can use our classes with rich metainformation.</p>
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Ontology to the rescue:</p>
+          <b>Ontology to the rescue</b>
             <pre><code class="scala" data-trim>
 sealed trait DomainEntity
-
-abstract final class Person extends DomainEntity
-
+abstract final class Person  extends DomainEntity
 abstract final class Address extends DomainEntity
-
-object person extends SchemaBuilder[Person] {
-  val name = property[String]
-  val address = property[Record[Address]]
-  val dob = property[LocalDate]
+          </code></pre>
+          <pre class="fragment"><code class="scala" data-trim>
+object person extends Schema[Person] {
+  val name        = property[String]
+  val address     = property[Record[Address]]
+  val dob         = property[LocalDate]
 }
 
-object address extends SchemaBuilder[Address] {
+object address extends Schema[Address] {
   val postalIndex = property[String]
-  val street = property[String]
+  val street      = property[String]
 }
           </code></pre>
+          <aside class="notes">
+            <p>Let's see how we could model our domain using typed ontology.</p>
+            <p>First of all, we define hierarchy of types in our domain. For this
+            we can use traits, abstract or concrete classes, objects,
+              generic _  parametrized types. These types are not used for storing data. They
+            are only used at compile time to preserve the inheritance relationship.</p>
+            <p>[NF] Then we define the properties of the  domain entities. It is convenient to
+            group property identifiers for a single entity in an object.
+              For more complex cases _ we may distribute these properties _ between a few traits and then _ combine
+              them with the cake [ˈpætən]pattern.</p>
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Data example:</p>
+          <b>Type of property</b>
+          <pre><code class="scala" data-trim>
+object person extends Schema[Person] {
+  val name: Property[Record[Person], String] =
+    property[String]
+}
+          </code></pre>
+          <ul>
+            <li>phantom types `Record[+_]`, `Person`</li>
+            <li>`name` can only be used in descendants of `Person`</li>
+          </ul>
+          <div class="fragment">
+          <pre><code class="scala" data-trim>
+trait Schema[T] {
+  def property[B](
+    implicit name: sourcecode.Name
+  ): PropertyId[Record[T],B]
+}
+          </code></pre>
+          <ul>
+            <li><i>Note: we use nice macro by Li Haoyi to capture the name of the property.</i></li>
+          </ul>
+          </div>
+          <aside class="notes">
+            <p>Let's take a closer look _ at the property definition _ type.</p>
+            <p>Property has two type parameters - the left one and the right one. The left one checks that
+            we can apply this property when dealing _ only with the appropriate records. While the right type
+            is approximately the type of data _ that we can put into this property.</p>
+            <p>[NF] To capture the name of the property we use macro by Ly Haoyi.</p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Data example</b>
             <pre><code class="scala" data-trim>
 val alice1 = Person(
   name = "Alice",
@@ -128,7 +238,7 @@ val alice1 = Person(
     postalIndex = "123456",
     street = "Blueberry street, 8"
   ),
-  dob = ??? // unknown
+  dob = ??? // - unknown, need some fake value
 )
 val alice2 = person.record(
   person.name := "Alice",
@@ -138,9 +248,37 @@ val alice2 = person.record(
   )
 )
             </code></pre>
+          <aside class="notes">
+            <p>Here is an example of two representations _  of the same data using both data structures.</p>
+            <p>Note that the amount of boilerplate is similar.</p>
+            <p>However, `name` in case class can only be used to get or set data value.
+              Whereas `name` in ontology is a separate object that can be used for other purposes as well.</p>
+          </aside>
+
+        </section>
+        <section style="text-align: left">
+          <b>Some implementation details</b>
+            <div><dl>
+            <dt>tmap</dt><dd>data storage</dd>
+            </dl></div><div class="fragment"><dl>
+            <dt>domain ontology</dt><dd>common language definition</dd>
+            </dl></div><div class="fragment"><dl>
+            <dt>meta</dt><dd>tools to define ontology (like PropertyId) and data representations</dd>
+            </dl></div><div class="fragment"><dl>
+            <dt>meta-of-meta</dt><dd>tools to define meta layer; universal tools available to all data representations</dd>
+            </dl></div>
+          <aside class="notes">
+            <p>The typed ontology has a few abstraction layers.</p>
+            <p>The lowest level is actual data representation like typed maps, json or something like that.</p>
+            <p>[NF] The next layer is the ontology itself with typed property declarations.</p>
+            <p>[NF] Meta layer contains tools for defining properties and tools of a particular
+              data representations.</p>
+            <p>[NF] Meta-of-meta layer tools to define meta layer; universal tools available to all data representations</p>
+          </aside>
+
         </section>
         <section>
-          <p>Data representations</p>
+          <p><b>Data representations</b></p>
           <ul>
             <li>typed map;</li>
             <li>json;</li>
@@ -149,44 +287,107 @@ val alice2 = person.record(
             <li>database row;</li>
             <li>...</li>
           </ul>
+          <aside class="notes">
+            <p>We can use the same ontology to work with data in different forms.</p>
+            <p>Typed maps use properties as keys and infer the value type, so that we won't need to cast to the desired type.</p>
+            <p>json automatically converts data to `JValue` and backward. For this a special type class `JsonConverter` is used.</p>
+            <p>We can even use case classes accompanied with lenses to represent our data. We just need to map our
+              ontology property identifiers to lenses.</p>
+            <p>Conversion to `HList` opens a compatibility path with many other data representation. </p>
+            <p>For instance, database row in Slick can be represented with `HList` and hence mapped to
+            any other ontology-based representations.</p>
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Data representations with ontology:</p>
+          <b>Advantages of ontology data representations </b>
           <ul>
             <li>sparse data
               <ul>
-                <li>typed maps and json are map-like structures that naturally represent absence;</li>
-                <li>apart from ordinary data, we may keep errors associated with property in the same record.</li>
+                <li>typed maps and json ~ `Map`-like;</li>
+                <li>property conversion errors.</li>
               </ul>
             </li>
-            <li>it's easy to capture event data about separate properties - just refer to a property by it's ontological `PropertyId`;</li>
-            <li>any metainformation can be associated with property either in separate maps, or directly in the
-                `PropertyId` class</li>
+            <li class="fragment">property-related events (by it's `PropertyId`);</li>
+            <li class="fragment">
+                          <pre><code class="scala" data-trim>
+case class NewPropertyValue[A,B](instanceId: Id[A], propertyId: PropertyId[Record[A], B], newValue: B)
+                          </code></pre>
+            </li>
+            <li class="fragment">metainformation - in map or in a custom `PropertyId`</li>
+            <li class="fragment">variety of data representations</li>
             <!--<li>schema definition</li>-->
           </ul>
-          <p>As there are various data representations, they can be used in various layers of application to
+          <aside class="notes">
+            <p>Here are some features of ontology data representations with
+            regards to the above mentioned application needs.</p>
+            <p>typed maps and json, like any other map-like structures _ naturally represent absence.</p>
+            <p>We can easily preserve conversion errors along with the property itself. Just map the property identifier to error description.</p>
+            <p>[NF] Events about individual properties can be represented as a simple case class with just reference to a property id.</p>
+            <p>[NF] We create a single case class with the new value and the `PropertyId`.
+              There is no need to create separate case classes for each property.
+              And the interpreter of these events does not depend on the domain model and can be reused easily.</p>
+
+            <p>[NF] Additional metainformation can be easily associated with a property either in a separate map, or directly in the custom `PropertyId`.
+            We can also use type classes wherever we find appropriate.</p>
+            <p>[NF] As there are various data representations, they can be used in various layers of application to
               fit their needs. </p>
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Architectural perspective of the ontology</p>
+          <b>Architectural perspective of the ontology</b>
           <ul>
-            <li>single place for domain model representation</li>
-            <li>single domain language for the complete application</li>
-            <li>code generation (often with macros in the single compiler pass) of various data representations -
-                database schemas, case classes, etc.</li>
-            <li>automatic data transfer/transformation between application layers</li>
-            <li>natural event sourcing implementation</li>
-            <li>UI hints and constraints</li>
+            <li>domain model - in a central place</li>
+            <li class="fragment">ontology = unified domain language</li>
+            <li class="fragment">Easy meta programming (including macros)</li>
+            <li class="fragment">DB schema inference</li>
+            <li class="fragment">Natural event sourcing</li>
+            <li class="fragment">Automatic data transformation</li>
+            <li class="fragment">UI hints</li>
+            <li class="fragment">Domain constraints</li>
             <!--<li>schema definition</li>-->
           </ul>
+          <aside class="notes">
+            <p>The influence of ontology on architecture is tremendous</p>
+            <ul>
+              <li>Domain model is defined in a single place without any repetition.</li>
+              <li>[NF] Ontology defines a unified domain language for the complete application.</li>
+              <li>[NF] It makes it easy to implement meta programming (like code generation, macros, DSLs, and things like that)</li>
+              <li>[NF] Database schema can also be inferred from the same domain model. It can easily evolve together with the domain model.</li>
+              <li>[NF] Using ontology we can naturally implement event sourcing. We can focus on a particular changed property, on a subset of properties,
+                or on a subschema of an entity. And we can record
+              events in a unified way for any properties.</li>
+              <li>[NF] Because all application layers speak the same domain language,
+                the data is fully automatically transferred between application layers. There is no need to
+              manually create error prone copying methods.</li>
+              <li>[NF] One of the possible ways to define user interface is to associate additional metainformation with
+              properties and generate UI through templates that are selected and parametrized by that metainformation.</li>
+              <li>[NF] The last but not least _ is the ability _ to reuse the validation logic, defined in the ontology model,
+                across the application.</li>
+            </ul>
+          </aside>
         </section>
         <section style="text-align: left">
-          <p>Conclusion</p>
+          <b>Typed ontology (conclusion)</b>
           <ul>
-            <li>typed ontology - single source of domain model for application</li>
-            <li>compile time safety</li>
-            <li>wide range of applications - sparse data representation, event sourcing, etc.</li>
+            <li>Single source of domain model</li>
+            <li>Compile time type safe JSON</li>
+            <li>Wide range of applications</li>
           </ul>
+          <aside class="notes">
+            <p>In conclusion I would like to encourage you to do an experiment with typed ontology and
+            see how it can change the way _ we represent _ our data.</p>
+            <p>You'll enjoy flexibility of JSON within familiar [scAla]Scala type space.</p>
+            <p></p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Questions?</b>
+          <p>
+            <small>Arseniy Zhizhelev, <a href="http://primetalk.ru/">Primetalk</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+          </p>
+          <aside class="notes">
+            I'm running a company Primetalk, and you may get in touch with me via the provided email.
+          </aside>
         </section>
       </div>
     </div>
