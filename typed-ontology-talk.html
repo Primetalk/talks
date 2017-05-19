@@ -33,58 +33,75 @@
           <aside class="notes">
             <p>Hello everyone. My name is Arseniy Zhizhelev, and I'm going to present an interesting approach of data modelling
               that I've used in a few projects.</p>
-            TODO: Add meta-meta diagram/code examples?
+
           </aside>
 
         </section>
 
         <!--
-Hello there Arseniy,
++1. Refactor plan slide. Probably, bullets will appear as I will be speaking.
 
-Thanks for sending along the PDF. Here is some feedback on the slides:
++2. Speed up some slides to free up a bit of time.
 
-1. Like the use of an intro slide.
-Is there any way you can make it have less text?
-One thought is to get rid of the text after the hyphens.
+~3. Add slide for data representations.
 
-2. Some of the slides have a lot of text on them.
-Can you reduce the text to just the highlights and talk about the details.
-The audience tends to try to read slides with a lot of text on them and then they aren't listening to you.
++4. Add cake pattern example slide.
 
-3. Some of the slides are blank. Help me understand the reasoning behind that.
-I feel like I am missing something.
++5. Rearrange data slide before shortcomings/benefits.
 
-Please take some time to clean up the slides and as a next step,
-prepare a video recording of you giving the talk.
-I can then provide feedback on the content of the talk and how well it fits together.
++6. And probably some other changes.
 
-Thanks!
+7. Add example - common thread
+* speeding it up a touch which might make it easier to fit in some deeper explanation of things like the cake pattern, see below.
+
++* Plan slide: is there a way to either shrink down the list of bullets or fade them in. I find that audiences stop listening to you talk and will simply read slides like that.
+
+~* Data representation neeeds slide:
+Good explanation. I did notice that you showed some text right before the
+
++Short comings: Great slide and good explanation of the shortcomings.
+
++You mention the cake pattern but assume that people know what you are talking about. Not sure there is time to explain the whole thing but is there a way that you can make a quick explanation?
+
++Data example slide. Can you show this before you talk about the limitations of case classes and the benefits of typed ontology? This would give the audience an understanding of what each one looks like in practice.
+
+This may be too big of a change at this point but so please disregard it if it is.
+Would it be possible to put together an example that is the common thread that you use for the whole presentation?
+This gives the audience a way to apply what you are saying to the problems they are trying to solve.
+
+TODO: Add meta-meta diagram/code examples?
         -->
         <section style="text-align: left">
           <h3>Plan</h3>
           <ul>
             <li>intro</li>
-            <li>data representation needs</li>
-            <li>simple domain model</li>
-            <li>shortcomings of case classes</li>
-            <li>ontology to the rescue</li>
-            <li>data representations</li>
-            <li>technical details</li>
+            <li class="fragment">data representation needs</li>
+            <li class="fragment">simple domain model</li>
+            <li class="fragment">ontology model</li>
+            <li class="fragment">data representations</li>
+            <li class="fragment">Pros & Cons</li>
+            <li class="fragment">technical details</li>
+          </ul>
+          <ul class="fragment">
             <li>architectural influence</li>
             <li>conclusion</li>
           </ul>
           <aside class="notes">
             <p>
-              Here is the outline of this talk. After a small introduction we'll discuss _ data representation needs
-            _ based on a  simple domain model example. We'll see the shortcomings of traditional `case classes`
-            and move on to the ontology way of describing the same domain model. Ontology gives freedom of choosing a
-            particular data representation to meet the actual needs _ of the application layer. One may use
-            - typed maps, json,  case-classes with lenses, database, and other forms of data.
+              Here is the outline of this talk. After a small introduction we'll discuss
             </p><p>
-            Then we'll take a quick look _  on how is this approach organized _ including abstraction layers _ like
+              [NF] _ data representation needs
+            _ based on a  simple domain model example. We'll see
+          </p><p>
+            [NF] the ontology way of describing the same domain model. Ontology gives freedom of choosing a
+            particular data representation to meet the actual needs _ of the application layer.
+          </p><p>
+            [NF] We'll then discuss pros & cons of traditional `case classes` and ontology approach.
+          </p><p>
+            [NF] Then we'll take a quick look _  on how is this approach organized _ including abstraction layers _ like
             meta, and meta-of-meta.
-            </p><p>
-            And discuss the influence _ of the typed ontology approach _ on the application structure.
+          </p><p>
+            [NF] And then discuss the influence _ of the typed ontology approach _ on the application structure.
             </p>
           </aside>
         </section>
@@ -113,7 +130,7 @@ Thanks!
           </aside>
         </section>
         <section style="text-align: left">
-          <b>Simple domain model</b>
+          <b>Simple domain model (case classes)</b>
           <pre><code class="scala" data-trim>
 sealed trait DomainEntity
 
@@ -132,42 +149,12 @@ case class Address(
             Let's consider a simple domain model like a person with a few attributes and an inner record - `Address`.
             Using case classes we define two things - data storage and semantic information
             about the data structure - property names and their types. These two things are inseparable from one another.
+              <p>We want to read data from database (with id) and be able to represent it to user,
+                  record events about this simple domain model</p>
           </aside>
         </section>
         <section style="text-align: left">
-          <b>Shortcomings of case classes</b>
-          <ul>
-            <li>sparse data
-              <ul>
-                <li>sets of case classes + per field data copying;</li>
-                <li>optional fields;</li>
-                <li>fields of type `Try`/`Either`/`\/`.</li>
-              </ul>
-            </li>
-            <li class="fragment">events are unrelated case classes  + manual event application</li>
-            <li class="fragment">runtime metainformation = annotations + reflection</li>
-            <!--<li>schema definition</li>-->
-          </ul>
-          <aside class="notes">
-            <p>Let's see _ how `case classes` work _ for the various data representation needs.</p>
-            <p>For incomplete data representation we will often see different sets of case classes in
-            different layers and have to manually copy the data from one representation to another.
-              Another often seen solution is
-            to declare some of the fields as optional and check the presence of data every time we access the property.</p>
-            <p>If we want to preserve the conversion error, then `Try` or [ˈaɪðə]`Either` might be used instead of the `Option`.</p>
-
-            <p>[NF] For capturing events _ we have to implement _ a dedicated set of classes and
-            an associated special interpreter _ that will apply the events to data. There is almost no way
-              to reuse property names or types or create a versatile interpreter.
-            </p>
-            <p>[NF] To preserve metainformation along with the property _ we do have some mechanism in place.
-              We can access metainformation using annotations and reflection.
-              Unfortunately, it is very constrained and really not the first-class. For instance, we cannot
-              associate a type class instance with rich logic, nor we can use our classes with rich metainformation.</p>
-          </aside>
-        </section>
-        <section style="text-align: left">
-          <b>Ontology to the rescue</b>
+          <b>Simple domain model (Ontology)</b>
             <pre><code class="scala" data-trim>
 sealed trait DomainEntity
 abstract final class Person  extends DomainEntity
@@ -229,6 +216,43 @@ trait Schema[T] {
             <p>[NF] To capture the name of the property we use macro by Ly Haoyi.</p>
           </aside>
         </section>
+          <section style="text-align: left">
+              <b>Ontology*: cake pattern</b>
+              <pre><code class="scala" data-trim>
+sealed trait DomainEntitySchema[T &lt;: DomainEntity]
+  extends Schema[T] {
+  val id          = property[String]
+}
+sealed trait PersonSchema[T &lt;: Person] extends Schema[T] {
+  val name        = property[String]
+  val address     = property[Record[Address]]
+  val dob         = property[LocalDate]
+}
+object person2 extends Schema[Person]
+  with PersonSchema[Person]
+  with DomainEntitySchema[Person]
+</code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+sealed trait AddressSchema[T &lt;: Address] extends Schema[T]
+  with DomainEntitySchema[T] {
+  val postalIndex = property[String]
+  val street      = property[String]
+}
+object address2 extends AddressSchema[Address]
+          </code></pre>
+              <aside class="notes">
+                  <p>Here is an example of using cake pattern to compose a few schemas of
+                      related entities.
+                  </p>
+                  <p>All properties are defined in traits that corresponds to a certain entity.
+                      (It is also possible to define partial set of properties.)</p>
+                  <p>Then we combine a few traits with the desired property definitions into
+                      a single schema for an entity</p>
+
+                  <p>[NF] We can also directly stack all the desired properties. In this case the schema object
+                      will inherit only the last trait.</p>
+              </aside>
+          </section>
         <section style="text-align: left">
           <b>Data example</b>
             <pre><code class="scala" data-trim>
@@ -254,7 +278,6 @@ val alice2 = person.record(
             <p>However, `name` in case class can only be used to get or set data value.
               Whereas `name` in ontology is a separate object that can be used for other purposes as well.</p>
           </aside>
-
         </section>
         <section style="text-align: left">
           <b>Some implementation details</b>
@@ -275,31 +298,78 @@ val alice2 = person.record(
               data representations.</p>
             <p>[NF] Meta-of-meta layer tools to define meta layer; universal tools available to all data representations</p>
           </aside>
-
         </section>
         <section>
-          <p><b>Data representations</b></p>
+          <b>Data representations</b>
           <ul>
-            <li>typed map;</li>
-            <li>json;</li>
-            <li>case classes + lenses;</li>
-            <li>HList;</li>
-            <li>database row;</li>
-            <li>...</li>
+            <li>typed map;
+              <pre><code class="scala" data-trim>
+case class TypedMap[A](map: Map[PropertyId[Record[A],_], _])
+            </code></pre>
+            </li>
+            <li class="fragment">json;
+              <pre><code class="scala" data-trim>
+case class JObjectRecord[A](jobject: JObject)
+              </code></pre>
+            </li>
+            <li class="fragment">case classes + lenses;
+                <pre><code class="scala" data-trim>
+@Lenses
+case class Person(name: String  address: Address,
+  dob: LocalDate) extends DomainEntity
+
+              </code></pre>
+            </li>
+            <li class="fragment">HList;</li>
+            <li class="fragment">database row;</li>
+            <li class="fragment">...</li>
           </ul>
           <aside class="notes">
             <p>We can use the same ontology to work with data in different forms.</p>
             <p>Typed maps use properties as keys and infer the value type, so that we won't need to cast to the desired type.</p>
-            <p>json automatically converts data to `JValue` and backward. For this a special type class `JsonConverter` is used.</p>
-            <p>We can even use case classes accompanied with lenses to represent our data. We just need to map our
+            <p>[NF] json automatically converts data to `JValue` and backward. For this a special type class `JsonConverter` is used.</p>
+            <p>[NF] We can even use case classes accompanied with lenses to represent our data. We just need to map our
               ontology property identifiers to lenses.</p>
-            <p>Conversion to `HList` opens a compatibility path with many other data representation. </p>
-            <p>For instance, database row in Slick can be represented with `HList` and hence mapped to
+            <p>[NF] Conversion to `HList` opens a compatibility path with many other data representation. </p>
+            <p>[NF] For instance, database row in Slick can be represented with `HList` and hence mapped to
             any other ontology-based representations.</p>
+            <p>[NF] And of course, there might exist arbitrary custom representations.</p>
           </aside>
         </section>
+      <section style="text-align: left">
+          <b>Limitations of case classes</b>
+          <ul>
+              <li>sparse data
+                  <ul>
+                      <li>sets of case classes + per field data copying;</li>
+                      <li>optional fields;</li>
+                      <li>fields of type `Try`/`Either`/`\/`.</li>
+                  </ul>
+              </li>
+              <li class="fragment">events are unrelated case classes  + manual event application</li>
+              <li class="fragment">runtime metainformation = annotations + reflection</li>
+              <!--<li>schema definition</li>-->
+          </ul>
+          <aside class="notes">
+              <p>Let's see _ how `case classes` work _ for the various data representation needs.</p>
+              <p>For incomplete data representation we will often see different sets of case classes in
+                  different layers and have to manually copy the data from one representation to another.
+                  Another often seen solution is
+                  to declare some of the fields as optional and check the presence of data every time we access the property.</p>
+              <p>If we want to preserve the conversion error, then `Try` or [ˈaɪðə]`Either` might be used instead of the `Option`.</p>
+
+              <p>[NF] For capturing events _ we have to implement _ a dedicated set of classes and
+                  an associated special interpreter _ that will apply the events to data. There is almost no way
+                  to reuse property names or types or create a versatile interpreter.
+              </p>
+              <p>[NF] To preserve metainformation along with the property _ we do have some mechanism in place.
+                  We can access metainformation using annotations and reflection.
+                  Unfortunately, it is very constrained and really not the first-class. For instance, we cannot
+                  associate a type class instance with rich logic, nor we can use our classes with rich metainformation.</p>
+          </aside>
+      </section>
         <section style="text-align: left">
-          <b>Advantages of ontology data representations </b>
+          <b>Advantages of ontology data representations</b>
           <ul>
             <li>sparse data
               <ul>
@@ -310,7 +380,10 @@ val alice2 = person.record(
             <li class="fragment">property-related events (by it's `PropertyId`);</li>
             <li class="fragment">
                           <pre><code class="scala" data-trim>
-case class NewPropertyValue[A,B](instanceId: Id[A], propertyId: PropertyId[Record[A], B], newValue: B)
+case class NewPropertyValue[A,B](
+  instanceId: Id[A],
+  propertyId: PropertyId[Record[A], B],
+  newValue: B)
                           </code></pre>
             </li>
             <li class="fragment">metainformation - in map or in a custom `PropertyId`</li>
@@ -381,15 +454,28 @@ case class NewPropertyValue[A,B](instanceId: Id[A], propertyId: PropertyId[Recor
           </aside>
         </section>
         <section style="text-align: left">
-          <b>Questions?</b>
-          <p>
-            <small>Arseniy Zhizhelev, <a href="http://primetalk.ru/">Primetalk</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
-          </p>
-          <aside class="notes">
-            I'm running a company Primetalk, and you may get in touch with me via the provided email.
-          </aside>
+            <p><b>Appreciation</b></p>
+            <ul>
+                <li>Lambda Conf committee</li>
+                <li>Cotiviti Labs</li>
+                <li>An anonymous volunteer</li>
+            </ul>
+            <div class="fragment">
+                <p></p>
+              <b>Questions?</b>
+              <p>
+                <small>Arseniy Zhizhelev, <a href="http://primetalk.ru/">Primetalk</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+              </p>
+
+            </div>
+            <aside class="notes">
+                <p>I wish to say thank you to people who gave me the opportunity to attend the conference -
+                    Lambda Conf team, Cotiviti Labs team, and a volunteer who wished to remain anonymous.</p>
+                <p>[NF] I'm running a company Primetalk, and you may get in touch with me via the provided email.</p>
+                <p>Questions?</p>
+            </aside>
         </section>
-      </div>
+      </section>
     </div>
 
     <script src="reveal-js/lib/js/head.min.js"></script>
