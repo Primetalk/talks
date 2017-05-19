@@ -75,31 +75,32 @@ TODO: Add meta-meta diagram/code examples?
           <h3>Plan</h3>
           <ul>
             <li>intro</li>
-            <li class="fragment">data representation needs</li>
+            <li class="fragment">data representation <b>needs</b></li>
             <li class="fragment">simple domain model</li>
             <li class="fragment">ontology model</li>
-            <li class="fragment">data representations</li>
-            <li class="fragment">Pros & Cons</li>
-            <li class="fragment">technical details</li>
-          </ul>
-          <ul class="fragment">
-            <li>architectural influence</li>
-            <li>conclusion</li>
+            <li class="fragment">various data representations</li>
+              <li class="fragment">technical details</li>
+              <li class="fragment">Pros & Cons</li>
+            <li class="fragment">architectural influence</li>
           </ul>
           <aside class="notes">
             <p>
               Here is the outline of this talk. After a small introduction we'll discuss
             </p><p>
               [NF] _ data representation needs
-            _ based on a  simple domain model example. We'll see
+            _ based on
+            </p><p>
+              [NF] a  simple domain model example. We'll then see
           </p><p>
-            [NF] the ontology way of describing the same domain model. Ontology gives freedom of choosing a
+            [NF] the ontology way of describing the same domain model.
+          </p><p>
+            [NF] Ontology gives freedom of choosing a
             particular data representation to meet the actual needs _ of the application layer.
           </p><p>
-            [NF] We'll then discuss pros & cons of traditional `case classes` and ontology approach.
+              [NF] Then we'll take a quick look _  on how is this approach organized _ including abstraction layers _ like
+              meta, and meta-of-meta.
           </p><p>
-            [NF] Then we'll take a quick look _  on how is this approach organized _ including abstraction layers _ like
-            meta, and meta-of-meta.
+            [NF] We'll then discuss pros & cons of traditional `case classes` and ontology approach.
           </p><p>
             [NF] And then discuss the influence _ of the typed ontology approach _ on the application structure.
             </p>
@@ -149,8 +150,6 @@ case class Address(
             Let's consider a simple domain model like a person with a few attributes and an inner record - `Address`.
             Using case classes we define two things - data storage and semantic information
             about the data structure - property names and their types. These two things are inseparable from one another.
-              <p>We want to read data from database (with id) and be able to represent it to user,
-                  record events about this simple domain model</p>
           </aside>
         </section>
         <section style="text-align: left">
@@ -174,9 +173,9 @@ object address extends Schema[Address] {
           </code></pre>
           <aside class="notes">
             <p>Let's see how we could model our domain using typed ontology.</p>
-            <p>First of all, we define hierarchy of types in our domain. For this
+            <p>First of all, we define a hierarchy of types in our domain. For this
             we can use traits, abstract or concrete classes, objects,
-              generic _  parametrized types. These types are not used for storing data. They
+              generic _  parametr[i]ized types. These types are not used for storing data. They
             are only used at compile time to preserve the inheritance relationship.</p>
             <p>[NF] Then we define the properties of the  domain entities. It is convenient to
             group property identifiers for a single entity in an object.
@@ -213,7 +212,8 @@ trait Schema[T] {
             <p>Property has two type parameters - the left one and the right one. The left one checks that
             we can apply this property when dealing _ only with the appropriate records. While the right type
             is approximately the type of data _ that we can put into this property.</p>
-            <p>[NF] To capture the name of the property we use macro by Ly Haoyi.</p>
+            <p>[NF] To capture the name of the property we use macro by Ly Haoyi. _
+                Though in a custom property identifier we may provide some attributes explicitly and some - implicitly.</p>
           </aside>
         </section>
           <section style="text-align: left">
@@ -249,7 +249,8 @@ object address2 extends AddressSchema[Address]
                   <p>Then we combine a few traits with the desired property definitions into
                       a single schema for an entity</p>
 
-                  <p>[NF] We can also directly stack all the desired properties. In this case the schema object
+                  <p>[NF] We can also directly stack all the desired properties while constructing partial traits.
+                      In this case the schema object
                       will inherit only the last trait.</p>
               </aside>
           </section>
@@ -275,28 +276,8 @@ val alice2 = person.record(
           <aside class="notes">
             <p>Here is an example of two representations _  of the same data using both data structures.</p>
             <p>Note that the amount of boilerplate is similar.</p>
-            <p>However, `name` in case class can only be used to get or set data value.
+            <p>However, note that `name` in case class can only be used to get or set data value.
               Whereas `name` in ontology is a separate object that can be used for other purposes as well.</p>
-          </aside>
-        </section>
-        <section style="text-align: left">
-          <b>Some implementation details</b>
-            <div><dl>
-            <dt>tmap</dt><dd>data storage</dd>
-            </dl></div><div class="fragment"><dl>
-            <dt>domain ontology</dt><dd>common language definition</dd>
-            </dl></div><div class="fragment"><dl>
-            <dt>meta</dt><dd>tools to define ontology (like PropertyId) and data representations</dd>
-            </dl></div><div class="fragment"><dl>
-            <dt>meta-of-meta</dt><dd>tools to define meta layer; universal tools available to all data representations</dd>
-            </dl></div>
-          <aside class="notes">
-            <p>The typed ontology has a few abstraction layers.</p>
-            <p>The lowest level is actual data representation like typed maps, json or something like that.</p>
-            <p>[NF] The next layer is the ontology itself with typed property declarations.</p>
-            <p>[NF] Meta layer contains tools for defining properties and tools of a particular
-              data representations.</p>
-            <p>[NF] Meta-of-meta layer tools to define meta layer; universal tools available to all data representations</p>
           </aside>
         </section>
         <section>
@@ -304,7 +285,8 @@ val alice2 = person.record(
           <ul>
             <li>typed map;
               <pre><code class="scala" data-trim>
-case class TypedMap[A](map: Map[PropertyId[Record[A],_], _])
+case class TypedMap[A](
+  map: Map[PropertyId[Record[A],_], _])
             </code></pre>
             </li>
             <li class="fragment">json;
@@ -317,7 +299,6 @@ case class JObjectRecord[A](jobject: JObject)
 @Lenses
 case class Person(name: String  address: Address,
   dob: LocalDate) extends DomainEntity
-
               </code></pre>
             </li>
             <li class="fragment">HList;</li>
@@ -336,6 +317,27 @@ case class Person(name: String  address: Address,
             <p>[NF] And of course, there might exist arbitrary custom representations.</p>
           </aside>
         </section>
+          <section style="text-align: left">
+              <b>Some implementation details: abstraction layers</b>
+              <div><dl>
+                  <dt>data storage</dt><dd>typed map, typed json</dd>
+              </dl></div><div class="fragment"><dl>
+              <dt>domain ontology</dt><dd>common language definition</dd>
+          </dl></div><div class="fragment"><dl>
+              <dt>meta</dt><dd>tools to define ontology (like PropertyId) and data representations</dd>
+          </dl></div><div class="fragment"><dl>
+              <dt>meta-of-meta</dt><dd>tools to define meta layer; universal tools available to all data representations</dd>
+          </dl></div>
+              <aside class="notes">
+                  <p>The typed ontology has a few abstraction layers.</p>
+                  <p>The lowest level is the actual data representation like typed maps, json or something like that.</p>
+                  <p>[NF] The next layer is the ontology itself with typed property declarations.</p>
+                  <p>[NF] Meta layer contains tools for defining properties and
+                      the tools of a particular data representations.</p>
+                  <p>[NF] Meta-of-meta layer provide technical tools to define meta layer;
+                      as well as universal user-level tools available to all data representations</p>
+              </aside>
+          </section>
       <section style="text-align: left">
           <b>Limitations of case classes</b>
           <ul>
