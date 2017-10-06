@@ -77,29 +77,29 @@ private[immutable] trait VectorPointer[T] {
             <h3>План</h3>
             <ul>
                 <li>Введение</li>
-                <li class="fragment">аналогии из реального мира</li>
-                <li class="fragment">конструирование новых данных</li>
-                <li class="fragment">производительность, сборка мусора</li>
-                <li class="fragment">некоторые красивые структуры данных
+                <li class="fragment">Аналогии из реального мира</li>
+                <li class="fragment">Конструирование новых данных</li>
+                <!--<li class="fragment">производительность, сборка мусора</li>-->
+                <li class="fragment">Некоторые красивые структуры данных
                     <ul>
-                        <li>список</li>
+                        <li>Односвязный список</li>
                         <li>Rope</li>
                         <li>Красно-черные деревья</li>
                     </ul>
                 </li>
-                <li class="fragment">структуры данных, представляющие вычисления
+                <li class="fragment">Структуры данных, представляющие вычисления
                     <ul>
                         <li>lazy, by ref</li>
                         <li>Task (fs2), IO (cats)</li>
                         <li>Stream</li>
                     </ul>
                 </li>
-                <li class="fragment">персистентные структуры данных
-                    <ul>
-                        <li>1</li>
-                    </ul>
-                </li>
-                <li class="fragment">взаимодействие с реальным миром</li>
+                <!--<li class="fragment">персистентные структуры данных-->
+                    <!--<ul>-->
+                        <!--<li>1</li>-->
+                    <!--</ul>-->
+                <!--</li>-->
+                <li class="fragment">Взаимодействие с реальным миром</li>
             </ul>
             <aside class="notes">
                 <p>
@@ -132,7 +132,7 @@ private[immutable] trait VectorPointer[T] {
         <section style="text-align: left">
             <b>Введение</b>
             <ul>
-                <li>времена изменились</li>
+                <li>Времена изменились</li>
                 <li class="fragment">высокоуровневые программы</li>
                 <li class="fragment">многоядерность (с 2005 г.)</li>
                 <li class="fragment">неизменяемые данные оказались <b>удобнее</b>
@@ -140,10 +140,8 @@ private[immutable] trait VectorPointer[T] {
             </ul>
             <aside class="notes">
                 <p>Некоторое время тому назад объёмы памяти не были столь значительны. Программистам приходилось явно
-                    переиспользовать
-                    ячейки памяти для новых значений. Постепенно программисты привыкли и даже когда объёмы памяти стали
-                    значительными, по-прежнему широко
-                    использовались переменные.
+                    переиспользовать ячейки памяти для новых значений. Постепенно программисты привыкли и даже когда
+                    объёмы памяти стали значительными, по-прежнему широко использовались переменные.
                 </p>
                 <p>Кроме того, программы сейчас становятся весьма высокоуровневыми. Поэтому накладные расходы на
                     обслуживание неизменяемых данных оказываются незначительными в сравнении с операциями верхнего
@@ -168,9 +166,10 @@ private[immutable] trait VectorPointer[T] {
             Математические выкладки в тетрадке и на маленькой школьной доске. Постепенное построение рисунков. Конструирование из отдельных деталей (без переделки).
             -->
             <ul>
-                <li>Математические выкладки</li>
-                <li class="fragment">Постепенное построение рисунков</li>
-                <li class="fragment">Конструирование из отдельных деталей (без переделки)</li>
+                <li>Математические выкладки <img src="persistent-data-structures/maths_writing.jpg" style="float: right;" align="right"/>
+                </li>
+                <li class="fragment">Построение рисунков добавлением элементов</li>
+                <li class="fragment">Сборка модели из деталей конструктора</li>
             </ul>
             <aside class="notes">
                 <p>
@@ -199,9 +198,9 @@ private[immutable] trait VectorPointer[T] {
         <section style="text-align: left">
             <b>Конструирование новых данных</b>
             <ol>
-                <li> раскладывание по контексту имен (связывание имён);</li>
-                <li class="fragment">промежуточные вычисления;</li>
-                <li class="fragment">сборка результата.</li>
+                <li>Раскладывание по контексту имен (связывание имён)</li>
+                <li class="fragment">Промежуточные вычисления</li>
+                <li class="fragment">Сборка результата</li>
             </ol>
             <aside class="notes">
                 <p>Вначале мы извлекаем части данных и, обычно, даём им имена в нашем локальном контексте. В
@@ -216,7 +215,7 @@ private[immutable] trait VectorPointer[T] {
             </aside>
         </section>
         <section style="text-align: left">
-            <b>Конструирование новых данных (пример 1)</b>
+            <b>Конструирование новых данных (пример 1, filter)</b>
             <pre><code class="haskell" data-trim>
 filter :: (a -> Bool) -> [a] -> [a]
 filter _ []                 = []
@@ -238,31 +237,27 @@ def filter[A](p: A => Boolean)(list: List[A]): List[A] =
     ... 
     case x :: xs => 
       val flag =  p(x)
-      val filtered = filter(p)(xs)
-      if(flag) x :: filtered else filtered
+      val filteredTail = filter(p)(xs)
+      val result = if(flag) x :: filtered else filtered
+      result
     ...
   }
           </code></pre>
             </div>
             <aside class="notes">
-                <p>Посмотрим, как выглядит реализация простой функции filter (не самая, впрочем, эффективная).</p>
+                <p>Посмотрим, как выглядит реализация простой функции filter.</p>
                 <p>Во-первых, мы рассматриваем три шаблона на аргументы, с которыми имеем дело. В трёх разных случаях мы
                     имеем разные контексты именования.</p>
-                <p>Посмотрим на наиболее полный второй случай. Мы разбираем исходную структуру на два компонента и даём
+                <p>[NF] Посмотрим на наиболее полный второй случай более внимательно. Мы разбираем исходную структуру на два компонента и даём
                     имена этим компонентам - x и xs.</p>
-                <p>Затем выполняем промежуточное вычисление p(x). Результат вычисления не связывается с именем, а
-                    используется непосредственно для управления потоком исполнения </p>
-                <p>Следующее промежуточное вычисление filter для хвоста списка. Результат вычисления опять-таки не
-                    связывается с именем, а используется непосредственно уже для конструирования новой структуры данных.
-                    В данном случае оказывается, что это опять список.</p>
-                <p>Следующее промежуточное вычисление filter для хвоста списка. Результат вычисления опять-таки не
-                    связывается с именем, а используется непосредственно уже для конструирования новой структуры данных.
-                    В данном случае оказывается, что это опять список.</p>
-
+                <p>Затем выполняем промежуточное вычисление p(x). Результат вычисления связывается с именем flag. </p>
+                <p>Следующее имя - filteredTail - будет именовать результат промежуточного вычисления filter для хвоста списка.
+                    Далее мы выполняем промежуточное вычисление условного выражения, которое конструирует нам результирующую структуру данных.
+                    </p>
             </aside>
         </section>
         <section style="text-align: left">
-            <b>Конструирование новых данных (пример 2)</b>
+            <b>Конструирование новых данных (пример 2 разбиение на строки)</b>
             <pre><code class="haskell" data-trim>
 lines        :: String -> [String]
 lines ""     =  []
@@ -298,6 +293,15 @@ def lines(s: String): List[String] =
         <section style="text-align: left">
             <b>Модификация неизмяемых структур</b>
             <img src="persistent-data-structures/Path-copying.png"/>
+            <aside class="notes">
+                <p>На рисунке можно видеть типичный механизм, используемый для модификации структур данных.
+                    Называется Path copying.</p>
+                <p>При внесении любых изменений в глубине структуры (в данном случае, добавление узла), мы вместо старых
+                    узлов создаём новые и распространяем изменения вверх до корня. В результате получаем новый корень
+                    и новые узлы, параллельные старым. Старый корень может по-прежнему использоваться для
+                    доступа к предыдущей версии структуры.
+                </p>
+            </aside>
         </section>
 
         <section>
@@ -332,7 +336,7 @@ final case class ::[B](
                 <p>Посмотрим, что там под капотом...</p>
                 <p>[NF] О, ужас! Здесь же переменные!</p>
                 <p>Как же так оказалось, что в immutable структуре содержатся var? Это как раз следствие низкоуровневой
-                    оптимизации. hd модифицируется в методе чтения данных,
+                    оптимизации. hd модифицируется в методе десериализации,
                     а tl модифицируется в ListBuffer'е при добавлении элементов в конец списка. Тем самым достигается
                     разумная производительность - O(1) при добавлении элементов. И O(1) при конвертации в список
                     (типичный способ использования списков - конструирование через CanBuildFrom и последующая
@@ -340,6 +344,8 @@ final case class ::[B](
                     При конвертации в List используется copy-on-write механизм. То есть после конвертации выставляется
                     флаг. И если мы попытаемся добавить следующий элемент, то весь буфер будет автоматически
                     скопирован.</p>
+                <p>После конструирования (`toList`) структура становится неизменяемой.
+                </p>
             </aside>
         </section>
         <section>
@@ -397,12 +403,9 @@ final case class ::[B](
                 <li class="fragment">В результате: дерево полностью сбалансировано</li>
             </ul>
             <aside class="notes">
-                <p>Красно-чёрные деревья при любых операциях поддерживают два инварианта, связанных с цветами узлов. За
+                <p>Красно-чёрные деревья это обычные деревья бинарного поиска, которые
+                    при любых операциях поддерживают два инварианта, связанных с цветами узлов. За
                     счет этого обеспечивается оптимальная производительность дерева</p>
-                <p></p>
-                <p></p>
-                <p></p>
-                <p></p>
             </aside>
         </section>
         <section>
@@ -441,13 +444,16 @@ case class T[A](
                 <img src="persistent-data-structures/Rbt_balance.png" style="height: 140mm"/>
                 <aside class="notes">
                     <p>На рисунке представлены различные случаи нарушения инвариантов и способы исправления
-                        нарушения. </p>
+                        нарушения. На всех деревьях x, y, z - рассматриваемые и исправляемые узлы, а a,b,c,d
+                        нижележащие уже сбалансированные деревья.</p>
 
                     <p>Рисунок из статьи Криса Окасаки про красно-черные деревья (J. Functional Programming 9(4)
                         471–477, July 1999.
                         Cambridge University Press, 471 Red-Black Trees in a Functional Setting CHRIS OKASAKI)</p>
-                    <p>Например, если ... </p>
-                    <p>Также можно смотреть на эти способы исправления инвариантов как на повороты/развороты дерева</p>
+                    <p>Например, если x - вверху. До узлов a, b, c, d - один черный узел. Но y и z - красные.
+                        После переписывания дерева оказывается, что остается один красный узел, но при этом до каждого из
+                        поддеревьев все равно остаётся по одному чёрному узлу. И этот участок дерева стал сбалансированным.</p>
+                    <p>Также можно смотреть на эти способы исправления инвариантов как на повороты/развороты дерева.</p>
                     <p></p>
                 </aside>
             </section>
@@ -461,6 +467,12 @@ case class T[A](
     case t                                             => t
   }
             </code></pre>
+                <aside class="notes">
+                    <p>В качестве шаблонов используются модели, представленные на предыдущем рисунке. Например,
+                        последняя строчка соответствует случаю, когда x - черный, а y левее z.</p>
+                    <p>Все эти шаблоны связывают одни и те же имена с разными узлами с таким расчетом,
+                    чтобы конечный результат был представлен одним выражением.</p>
+                </aside>
             </section>
             <section>
             <pre><code class="scala" data-trim>
@@ -472,7 +484,6 @@ case class T[A](
     case t   => t
   }
             </code></pre>
-            </section>
             <aside class="notes">
                 <p>Видно, что результирующая часть дерева имеет идентичную структуру во всех случаях исправления.</p>
                 <p></p>
@@ -480,11 +491,12 @@ case class T[A](
                 <p></p>
                 <p></p>
             </aside>
+            </section>
         </section>
-        <section style="text-align: left">
-            <b>Структуры данных, представляющие вычисления</b>
+        <section>
+            <p><b>Вычисления как данные</b></p>
             <ul>
-                <li class="fragment">lazy val</li>
+                <li>lazy val</li>
                 <li class="fragment">by ref</li>
                 <li class="fragment">Task (fs2) (~ IO)</li>
                 <li class="fragment">Stream (fs2)</li>
@@ -495,40 +507,68 @@ case class T[A](
                     изменяется, либо в точности те же вычисления могут быть выполнены повторно.</p>
                 <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А
                     результат запоминается.</p>
-                <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
+                <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется. Очень даже подходящий
+                    способ для чистых функций без побочных эффектов. </p>
                 <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать
                     последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие
                     побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше
                     Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
-                <p>[NF] Stream - конечный автомат, </p>
+                <p>[NF] Stream - конечный автомат (трансдьюсер), содержащий вычисления, позволяющие перерабатывать
+                    дискретный поток данных на входе в дискретный поток данных на выходе. </p>
+                <p>Представление вычислений в форме данных позволяет строить гибкие программы, существенно
+                    отличающиеся от классического структурного программирования. Можно реализовать рекурсивные
+                    алгоритмы, не ограниченные глубиной стека. Stream позволяет конструировать программы, обрабатывающие
+                    big data при сохранении константного потребления памяти.
+                </p>
             </aside>
         </section>
+
+        <section style="text-align: left">
+            <b>Stream (fs2) пример</b>
+            <pre><code class="scala" data-trim>
+def fahrenheitToCelsius(f: Double): Double =
+  (f - 32.0) * (5.0/9.0)
+def converter[F[_]](implicit F: Sync[F]): F[Unit] =
+  io.file.readAll[F](Paths.get("fahrenheit.txt"), 4096)
+    .through(text.utf8Decode)
+    .through(text.lines)
+    .filter(s => !s.trim.isEmpty && !s.startsWith("//"))
+    .map(line => fahrenheitToCelsius(line.toDouble).toString)
+    .intersperse("\n")
+    .through(text.utf8Encode)
+    .through(io.file.writeAll(Paths.get("celsius.txt")))
+    .run
+
+val u: Unit = converter[IO].unsafeRunSync()
+            </code></pre>
+        </section>
+
         <section style="text-align: left">
             <b>Корректное программирование</b>
             <ul>
-                <li>Программа делает, что от неё ожидают</li>
-                <li class="fragment">не зависает, не "падает" с исключениями</li>
-                <li class="fragment">ожидания <=> "очевидность" правильной работы</li>
-                <li class="fragment"></li>
+                <li>Программа делает, что от неё ожидают:
+                <ul>
+                    <li class="fragment">Не зависает, не "падает" с исключениями</li>
+                    <li class="fragment">Результаты правильные </li>
+                    <li class="fragment">Производительность соответствует ожиданиям</li>
+                </ul>
+                </li>
+                <li class="fragment">Как убедиться, что программа отвечает нашим ожиданиям?</li>
             </ul>
             <aside class="notes">
                 <p>Обычно трудно точно сказать, что значит корректная программа. Зачастую все заинтересованные лица
                     очень по-разному представляют, что должна делать программа. Здесь мы будем говорить о корректности с
                     точки зрения программиста. То есть, программист, анализируя программу может в значительной степени
-                    корректно понять как она работает, и это понимание будет очень близко к тому, что происходит на
+                    корректно понять как она работает, и это понимание должно быть очень близко к тому, что происходит на
                     самом деле.</p>
-                <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А
-                    результат запоминается.</p>
-                <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
-                <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать
-                    последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие
-                    побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше
-                    Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
-                <p>[NF] Stream - конечный автомат, </p>
+                <p>[NF] В частности, программа должна завершаться без ошибок.</p>
+                <p>[NF] Результаты программы должны проходить имеющиеся тесты</p>
+                <p>[NF] Программа должна потреблять разумное количество ресурсов (процессорного времени, памяти,
+                    сетевого трафика, места на диске)</p>
             </aside>
         </section>
         <section style="text-align: left">
-            <b>Корректное программирование (merge sort JavaScript)</b>
+            <b>Корректное программирование (пример 1 merge sort JavaScript)</b>
             <pre><code class="javascript" data-trim>
 function merge(left, right, arr) {
   var a = 0;
@@ -544,9 +584,8 @@ function merge(left, right, arr) {
     arr[a++] = right.shift();
   }
 }
- 
             </code></pre>
-<!--
+            <pre class="fragment"><code class="javascript" data-trim>
 function mergeSort(arr) {
   var len = arr.length;
  
@@ -563,21 +602,27 @@ function mergeSort(arr) {
  
 var arr = [1, 5, 2, 7, 3, 9, 4, 6, 8];
 mergeSort(arr); // arr will now: 1, 2, 3, 4, 5, 6, 7, 8, 9
--->
+            </code></pre>
             <aside class="notes">
-                <p>Обычно трудно точно сказать, что значит корректная программа. Зачастую все заинтересованные лица
-                    очень по-разному представляют, что должна делать программа. Здесь мы будем говорить о корректности с
-                    точки зрения программиста. То есть, программист, анализируя программу может в значительной степени
-                    корректно понять как она работает, и это понимание будет очень близко к тому, что происходит на
-                    самом деле.</p>
-                <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А
-                    результат запоминается.</p>
-                <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
-                <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать
-                    последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие
-                    побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше
-                    Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
-                <p>[NF] Stream - конечный автомат, </p>
+                <p>Рассмотрим в качестве примера кусочек алгоритма mergeSort (Кусочек, потому что весь алгоритм на
+                    слайд не помещается).
+                Реализация взята на сайте Розетта . ком. JavaSCript - оказался несколько компактнее Java.</p>
+                <p>Задача функции заключается в том, чтобы слить две предварительно отсортированные коллекции
+                в одну. </p>
+                <p>Первое, на что хочется обратить внимание, это то, что здесь имеется 4 переменные
+                и все они в ходе исполнения программы меняются. Состояние - эфемерное. </p>
+                <p>Затем, меняются аргументы функции. Причем если один из аргументов является возвращаемым
+                    значением, то два других страдают безвинно. Тем самым, функция обладает неожиданным для пользователя
+                побочным эффектом.</p>
+                <p>Далее. Из трех циклов всегда отрабатывают только два. К такому выводу можно прийти
+                только в результате внимательного моделирования того, как будут меняться переменные в ходе работы
+                    программы.</p>
+                <p>Коллекции должны иметь быструю реализацию length даже в условиях постоянных изменений.
+                По-видимому, длина коллекции должна храниться.
+                А выходная коллекция обязательно должна поддерживать высокую скорость произвольного доступа,
+                    несмотря на то, что заполняется она последовательно.</p>
+                <p> Может ли возникнуть исключение? По-видимому, да, если размер возвращаемого массива
+                    меньше суммы длин двух коллекций.</p>
             </aside>
         </section>
         <section style="text-align: left">
@@ -588,8 +633,7 @@ merge xs         []                   = xs
 merge xs@(x:xt) ys@(y:yt) | x <= y    = x : merge xt ys
                           | otherwise = y : merge xs yt
             </code></pre>
-<!-- 
-
+            <pre class="fragment"><code class="haskell" data-trim>
 split (x:y:zs) = let (xs,ys) = split zs in (x:xs,y:ys)
 split [x]      = ([x],[])
 split []       = ([],[])
@@ -598,35 +642,64 @@ mergeSort []  = []
 mergeSort [x] = [x]
 mergeSort xs  = let (as,bs) = split xs
                 in merge (mergeSort as) (mergeSort bs)
--->
+            </code></pre>
             <aside class="notes">
-                <p>Обычно трудно точно сказать, что значит корректная программа. Зачастую все заинтересованные лица
-                    очень по-разному представляют, что должна делать программа. Здесь мы будем говорить о корректности с
-                    точки зрения программиста. То есть, программист, анализируя программу может в значительной степени
-                    корректно понять как она работает, и это понимание будет очень близко к тому, что происходит на
-                    самом деле.</p>
-                <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А
-                    результат запоминается.</p>
-                <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
-                <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать
-                    последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие
-                    побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше
-                    Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
-                <p>[NF] Stream - конечный автомат, </p>
+                <p>Рассмотрим теперь тот же кусочек алгоритма, использующий неизменяемые структуры данных.</p>
+                <p>Во-первых, мы записываем два тривиальных случая, что если один из списков уже пустой, то
+                возвращаем другой, никакого слияния не требуется.</p>
+                <p>Далее, мы раскладываем поступившие данные в нашем пространстве имен с помощью сопоставления
+                с образцом. При этом хотя мы и ввели сразу 6 новых имен, однако никаких особенных требований к
+                коллекциям мы не предъявили - всего лишь доступ к первому элементу и представление
+                    остатка коллекции.
+                </p>
+                <p>Выполняем промежуточное вычисление, в данном случае, x<=y и merge для остатков списков.
+                </p>
+                <p>После чего собираем результирующую структуру.</p>
+                <p>На что здесь можно обратить внимание? Во-первых, здесь имена не меняют своих значений
+                    по ходу работы. То есть мы имеем 6 констант.</p>
+                <p>Во-вторых, в правильности результатов можно убедиться, посмотрев на возвращаемую структуру.
+                    Первым элементом этой структуры всегда будет меньший элемент.</p>
+                <p>В-третьих, так как в ходе рекурсивного вызова мы всегда передаём функции merge аргументы,
+                    один из которых укорочен, то можно прийти к выводу, что вычисление гарантированно завершатся
+                    при любых входных параметрах и мы получим ответы.
+                </p>
+            </aside>
+        </section>
+        <section style="text-align: left">
+            <b>Корректное программирование (2)</b>
+            <ul>
+                <li class="fragment">Нет эфемерного состояния. Все имена - константы.</li>
+                <li class="fragment">Нет неожиданных побочных эффектов.</li>
+                <li class="fragment"></li>
+            </ul>
+            <ul>
+                <li>
+                 </li>
+                <li class="fragment"></li>
+            </ul>
+            <aside class="notes">
+                <p>Какие преимущества дают неизменяемые данные с точки зрения корректности программы?</p>
+                <p>[NF] </p>
+                <p>[NF] </p>
+                <p>[NF] </p>
+
             </aside>
         </section>
         <section style="text-align: left">
             <b>Производительность (память)</b>
             <ul>
-                <li class="fragment">результаты вычислений - новые структуры данных</li>
-                <li class="fragment">отличия - память для структур данных</li>
-                <li class="fragment"></li>
+                <li class="fragment">Результаты вычислений - новые структуры данных</li>
+                <li class="fragment">Сборка мусора - </li>
+                <li class="fragment">Алгоритмы - специальные</li>
             </ul>
             <aside class="notes">
                 <p>Собственно вычисления - аналогичны по производительности, поэтому про них мы ничего особенного не
                     будем говорить.
                 </p>
-                <p>Однако память при таком подходе расходуется достаточно активно</p>
+                <p>Однако память при таком подходе расходуется достаточно активно.</p>
+                <p>Алгоритмы - другие. Однако похоже, что обычно удается найти алгоритмы, обладающие аналогичной
+                    ассимптотической сложностью. На практике оказывается, что при массовой обработке на первое место
+                    выходят затраты на обработку отдельных элементов, а накладные расходы</p>
                 <p>[NF] Для многих вычислений необходимо сконструировать результат вычисления. Причем практически на
                     каждом уровне выполнения мы должны упаковать результаты в некоторую структуру.</p>
 
@@ -647,134 +720,13 @@ mergeSort xs  = let (as,bs) = split xs
                 <p></p>
             </aside>
         </section>
-        <section style="text-align: left">
-            <b>Limitations of case classes</b>
-            <ul>
-                <li>sparse data
-                    <ul>
-                        <li>sets of case classes + per field data copying;</li>
-                        <li>optional fields;</li>
-                        <li>fields of type `Try`/`Either`/`\/`.</li>
-                    </ul>
-                </li>
-                <li class="fragment">events are unrelated case classes + manual event application</li>
-                <li class="fragment">runtime metainformation = annotations + reflection</li>
-                <!--<li>schema definition</li>-->
-            </ul>
-            <aside class="notes">
-                <p>Let's see _ how `case classes` work _ for the various data representation needs.</p>
-                <p>For incomplete data representation we will often see different sets of case classes in
-                    different layers and have to manually copy the data from one representation to another.
-                    Another often seen solution is
-                    to declare some of the fields as optional and check the presence of data every time we access the
-                    property.</p>
-                <p>If we want to preserve the conversion error, then `Try` or [ˈaɪðə]`Either` might be used instead of
-                    the `Option`.</p>
 
-                <p>[NF] For capturing events _ we have to implement _ a dedicated set of classes and
-                    an associated special interpreter _ that will apply the events to data. There is almost no way
-                    to reuse property names or types or create a versatile interpreter.
-                </p>
-                <p>[NF] To preserve metainformation along with the property _ we do have some mechanism in place.
-                    We can access metainformation using annotations and reflection.
-                    Unfortunately, it is very constrained and really not the first-class. For instance, we cannot
-                    associate a type class instance with rich logic, nor we can use our classes with rich
-                    metainformation.</p>
-            </aside>
-        </section>
         <section style="text-align: left">
-            <b>Advantages of ontology data representations</b>
+            <b>Заключение</b>
             <ul>
-                <li>sparse data
-                    <ul>
-                        <li>typed maps and json ~ `Map`-like;</li>
-                        <li>property conversion errors.</li>
-                    </ul>
-                </li>
-                <li class="fragment">property-related events (by it's `PropertyId`);</li>
-                <li class="fragment" style="list-style: none;">
-                          <pre><code class="scala" data-trim>
-case class NewPropertyValue[A,B](
-  instanceId: Id[A],
-  propertyId: PropertyId[Record[A], B],
-  newValue: B)
-                          </code></pre>
-                </li>
-                <li class="fragment">metainformation - in map or in a custom `PropertyId`</li>
-                <li class="fragment">variety of data representations</li>
-                <!--<li>schema definition</li>-->
-            </ul>
-            <aside class="notes">
-                <p>Here are some features of ontology data representations with
-                    regards to the above mentioned application needs.</p>
-                <p>typed maps and json, like any other map-like structures _ naturally represent absence.</p>
-                <p>We can easily preserve conversion errors along with the property itself. Just map the property
-                    identifier to error description.</p>
-                <p>[NF] Events about individual properties can be represented as a simple case class with just reference
-                    to a property id.</p>
-                <p>[NF] We create a single case class with the new value and the `PropertyId`.
-                    There is no need to create separate case classes for each property.
-                    And the interpreter of these events does not depend on the domain model and can be reused
-                    easily.</p>
-
-                <p>[NF] Additional metainformation can be easily associated with a property either in a separate map, or
-                    directly in the custom `PropertyId`.
-                    We can also use type classes wherever we find appropriate.</p>
-                <p>[NF] As there are various data representations, they can be used in various layers of application to
-                    fit their needs. </p>
-            </aside>
-        </section>
-        <section style="text-align: left">
-            <b>Architectural perspective of the ontology</b>
-            <ul>
-                <li>domain model - in a central place</li>
-                <li class="fragment">ontology = unified domain language</li>
-                <li class="fragment">Easy meta programming (including macros)</li>
-                <li class="fragment">DB schema inference</li>
-                <li class="fragment">Natural event sourcing</li>
-                <li class="fragment">Automatic data transformation</li>
-                <li class="fragment">UI hints</li>
-                <li class="fragment">Domain constraints</li>
-                <!--<li>schema definition</li>-->
-            </ul>
-            <aside class="notes">
-                <p>The influence of ontology on architecture is tremendous</p>
-                <ul>
-                    <li>Domain model is defined in a single place without any repetition.</li>
-                    <li>[NF] Ontology defines a unified domain language for the complete application.</li>
-                    <li>[NF] It makes it easy to implement meta programming (like code generation, macros, DSLs, and
-                        things like that)
-                    </li>
-                    <li>[NF] Database schema can also be inferred from the same domain model. It can easily evolve
-                        together with the domain model.
-                    </li>
-                    <li>[NF] Using ontology we can naturally implement event sourcing. We can focus on a particular
-                        changed property, on a subset of properties,
-                        or on a subschema of an entity. And we can record
-                        events in a unified way for any properties.
-                    </li>
-                    <li>[NF] Because all application layers speak the same domain language,
-                        the data is fully automatically transferred between application layers. There is no need to
-                        manually create error prone copying methods.
-                    </li>
-                    <li>[NF] One of the possible ways to define user interface is to associate additional
-                        metainformation with
-                        properties and generate UI through templates that are selected and parametrized by that
-                        metainformation.
-                    </li>
-                    <li>[NF] The last but not least _ is the ability _ to reuse the validation logic, defined in the
-                        ontology model,
-                        across the application.
-                    </li>
-                </ul>
-            </aside>
-        </section>
-        <section style="text-align: left">
-            <b>Typed ontology (conclusion)</b>
-            <ul>
-                <li>Single source of domain model</li>
-                <li>Compile time type safe JSON</li>
-                <li>Wide range of applications</li>
+                <li>Неизменяемые данные - в арсенал программиста</li>
+                <li>В многопоточных программах - обязательно</li>
+                <li></li>
             </ul>
             <aside class="notes">
                 <p>In conclusion I would like to encourage you to do an experiment with typed ontology and
