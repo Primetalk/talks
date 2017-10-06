@@ -1,0 +1,727 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Неизменяемые структуры данных</title>
+
+    <link rel="stylesheet" href="reveal-js/css/reveal.css">
+    <link rel="stylesheet" href="reveal-js/css/theme/black.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h3>Неизменяемые структуры данных</h3>
+          <h5>(persistent data structures)</h5>
+          <p>
+            <small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+          </p>
+          <aside class="notes">
+            <p>Добрый день. Меня зовут Арсений Жижелев и я хотел бы представить вашему вниманию некоторые соображения о неизменяемых структурах данных.</p>
+
+          </aside>
+
+        </section>
+
+        <!--
+1. Введение. 
+2. Математические выкладки в тетрадке и на маленькой школьной доске. Постепенное построение рисунков. Конструирование из отдельных деталей (без переделки).
+3. Конструирование новых данных - 1) раскладывание по контексту имён; 2) промежуточные вычисления; 3) сборка результата
+4. Производительность. Выделение памяти, сборка мусора.
+5. Красивые структуры данных 
+	a. список
+	b. Rope
+	c. Красно-черные деревья (Scala)
+6. Структуры данных, представляющие вычисления.
+	a. lazy, by ref, 
+	b. Task, 
+	c. Stream
+7. Persistent data structures
+8. Взаимодействие между потоками; взаимодействие с реальным миром.
+
+Отношение: 
+- вся суть функционального программирования вытекает из неизменности данных. "Закон сохранения данных"
+- практическое удобство неизменных данных заключается в отсутствии проблем при наличии многих потоков. По-видимому, поэтому функциональное программирование получило такое развитие.
+
+Однако, можно получить те же практические преимущества и потокобезопасность и в других парадигмах программирования, включая ООП. Необходимо лишь полностью исключить модифицируемые данные. (На самом деле, теоретически можно и оставить модифицируемые данные, но только в некотором локальном пространстве, доступ к которому имеет только один поток. Однако, из-за отсутствия чёткой границы в коде между одним потоком и другим, оказывается, что программы, содержащие переменные, в целом не являются потокобезопасными.)
+
+        -->
+<!--
+final class Vector[+A](
+  private[collection] val startIndex: Int,
+  private[collection] val endIndex: Int, focus: Int)
+extends ... with VectorPointer[A @uncheckedVariance]
+private[immutable] trait VectorPointer[T] {
+    private[immutable] var depth: Int = 0
+    private[immutable] var display0: Array[AnyRef] = null
+    ...
+    private[immutable] var display5: Array[AnyRef] = null
+-->
+        <section style="text-align: left">
+          <h3>План</h3>
+          <ul>
+            <li>Введение</li>
+            <li class="fragment">аналогии из реального мира</li>
+            <li class="fragment">конструирование новых данных</li>
+            <li class="fragment">производительность, сборка мусора</li>
+            <li class="fragment">некоторые красивые структуры данных
+             <ul>
+              <li>список</li>
+              <li>Rope</li>
+              <li>Красно-черные деревья</li>
+             </ul>
+            </li>
+            <li class="fragment">структуры данных, представляющие вычисления
+             <ul>
+              <li>lazy, by ref</li>
+              <li>Task (fs2), IO (cats)</li>
+              <li>Stream</li>
+             </ul>
+            </li>
+            <li class="fragment">персистентные структуры данных
+             <ul>
+              <li>1</li>
+             </ul>
+            </li>
+            <li class="fragment">взаимодействие с реальным миром</li>
+          </ul>
+          <aside class="notes">
+            <p>
+              На слайде представлен примерный план доклада
+            </p><p>
+              [NF] будут рассмотрены аналогии из физического мира, которые нас окружают
+            </p><p>
+              [NF] показан порядок, как из имеющихся данных конструируются новые структуры данных
+          </p><p>
+            [NF] применение автоматических систем управления памяти (сборщиков мусора), делает работу 
+                 с такими данными весьма удобной.
+          </p><p>
+            [NF] рассмотрены некоторые простые структуры данных
+          </p><p>
+            [NF] структуры данных, представляющие "замороженные" вычисления
+          </p><p>
+            [NF] некоторые более интересные структуры данных
+          </p><p>
+            [NF] а также взаимодействие с реальным миром
+            </p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Введение</b>
+          <ul>
+            <li>времена изменились</li>
+            <li class="fragment">высокоуровневые программы</li>
+            <li class="fragment">многоядерность (с 2005 г.)</li>
+            <li class="fragment">неизменяемые данные оказались <b>удобнее</b>
+            </li>
+          </ul>
+          <aside class="notes">
+            <p>Некоторое время тому назад объёмы памяти не были столь значительны. Программистам приходилось явно переиспользовать
+               ячейки памяти для новых значений. Постепенно программисты привыкли и даже когда объёмы памяти стали значительными, по-прежнему широко
+               использовались переменные.
+            </p>
+            <p>Кроме того, программы сейчас становятся весьма высокоуровневыми. Поэтому накладные расходы на обслуживание неизменяемых данных оказываются незначительными в сравнении с операциями верхнего уровня. На более низком уровне по-прежнему активно используются переменные.
+            </p>
+            <p>[NF] В 2005 году "закончился бесплатный обед" (<a href="http://www.gotw.ca/publications/concurrency-ddj.htm">The Free Lunch Is Over A Fundamental Turn Toward Concurrency in Software By Herb Sutter</a>.) Повышение производительности теперь достигается только за счёт распараллеливания.</p>
+            <p>[NF] "Удобство" неизменяемых данных - в первую очередь для программиста. 
+Во-первых, понять работу программы, в которой ничего не меняется, гораздо проще, чем работу программы, в которой всё зависит от эфемерного текущего состояния программы.
+Во-вторых, появляется возможность вести корректные рассуждения о работе многопоточных программ.
+В-третьих, неизменяемые данные автоматически потокобезопасны. 
+</p>
+            <p>[NF] </p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Аналогии</b>
+<!-- 
+Математические выкладки в тетрадке и на маленькой школьной доске. Постепенное построение рисунков. Конструирование из отдельных деталей (без переделки).
+-->
+          <ul>
+            <li>Математические выкладки</li>
+            <li class="fragment">Постепенное построение рисунков</li>
+            <li class="fragment">Конструирование из отдельных деталей (без переделки)</li>
+          </ul>
+          <aside class="notes">
+          <p>
+            Математические выкладки в тетрадке. Мы записываем исходное выражение, потом несколько раз переписываем его, заменяя отдельные части результатами вычислений. Иногда мы наносим дополнительные пометки прямо на последнее выписанное выражение: сокращаем множители; взаимно уничтожаем слагаемые с разными знаками; надписываем промежуточные результаты действий. Когда мы впоследствии переписываем выражение "начисто", мы пользуемся сделанными пометками и интерпретируем их по ходу записи.
+          </p><p>
+            Теперь посмотрим, что происходит, если мы будем математические выкладки делать на школьной доске. Если выражение достаточно развесистое, то его может быть проблематично переписывать целиком, так как предыдущий шаг нам пришлось бы вначале стереть. В то же время, мы достаточно легко можем стирать части выражения и заменять их результатами промежуточных вычислений.
+          </p><p>
+            Если мы рисуем чертеж, то мы в основном постепенно добавляем детали и стараемся, чтобы не приходилось ничего стирать (что, впрочем, не всегда получается).
+          </p><p>
+            Сборка из конструктора вообще подразумевает, что сами детали остаются неизменными, а мы лишь меняем их положение в пространстве.
+          </p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Конструирование новых данных</b>
+          <ol>
+            <li> раскладывание по контексту имен (связывание имён); </li>
+            <li class="fragment">промежуточные вычисления;</li>
+            <li class="fragment">сборка результата.</li>
+          </ol>
+          <aside class="notes">
+            <p>Вначале мы извлекаем части данных и, обычно, даём им имена в нашем локальном контексте. В функциональном программировании такая операция может выполняться с помощью "сопоставления с образцом" или pattern matching'а</p>
+            <p>[NF] Затем мы выполняем необходимые промежуточные вычисления и сохраняем результаты также в локальном контексте (связываем значения с именами); Что интересно, промежуточные вычисления вполне могут включать локальные изменяемые переменные. Это никак не помешает этим вычислениям оставаться "чистыми". Важное ограничение - отсутствие глобальных переменных и отсутствие доступа к внешнему миру.</p>
+            <p>[NF] После завершения операции мы собираем результирующую структуру данных</p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Конструирование новых данных (пример 1)</b>
+          <pre><code class="haskell" data-trim>
+filter :: (a -> Bool) -> [a] -> [a]
+filter _ []                 = []
+filter p (x:xs) | p x       = x : filter p xs
+                | otherwise = filter p xs
+          </code></pre>
+          <pre><code class="scala" data-trim>
+def filter[A](p: A => Boolean)(list: List[A]): List[A] =
+  list match {
+    case Nil                => Nil
+    case x :: xs if p(x)    => x :: filter(p)(xs)
+    case _ :: xs            => filter(p)(xs)
+  }
+          </code></pre>
+          <div class="fragment">
+          <pre><code class="scala" data-trim>
+def filter[A](p: A => Boolean)(list: List[A]): List[A] =
+  list match {
+    ... 
+    case x :: xs => 
+      val flag =  p(x)
+      val filtered = filter(p)(xs)
+      if(flag) x :: filtered else filtered
+    ...
+  }
+          </code></pre>
+          </div>
+          <aside class="notes">
+            <p>Посмотрим, как выглядит реализация простой функции filter (не самая, впрочем, эффективная).</p>
+            <p>Во-первых, мы рассматриваем три шаблона на аргументы, с которыми имеем дело. В трёх разных случаях мы имеем разные контексты именования.</p>
+            <p>Посмотрим на наиболее полный второй случай. Мы разбираем исходную структуру на два компонента и даём имена этим компонентам - x и xs.</p>
+            <p>Затем выполняем промежуточное вычисление p(x). Результат вычисления не связывается с именем, а используется непосредственно для управления потоком исполнения </p>
+            <p>Следующее промежуточное вычисление filter для хвоста списка. Результат вычисления опять-таки не связывается с именем, а используется непосредственно уже для конструирования новой структуры данных. В данном случае оказывается, что это опять список.</p>
+            <p>Следующее промежуточное вычисление filter для хвоста списка. Результат вычисления опять-таки не связывается с именем, а используется непосредственно уже для конструирования новой структуры данных. В данном случае оказывается, что это опять список.</p>
+
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Конструирование новых данных (пример 2)</b>
+          <pre><code class="haskell" data-trim>
+lines        :: String -> [String]
+lines ""     =  []
+lines s      =  let (l, s') = break (== '\n') s
+                  in  l : case s' of
+                            []      -> []
+                            (_:s'') -> lines s''
+          </code></pre>
+          <pre><code class="scala" data-trim>
+def lines(s: String): List[String] =
+  s match {
+    case ""  => Nil
+    case _   => 
+      val (l, s1) = break(_ == '\n')(s)
+      val tail = s1 match {
+                            case ""      => Nil
+                            case _ :: s2 => lines(s2)
+                          }
+      l :: tail
+  }
+          </code></pre>
+          <aside class="notes">
+            <p>Взглянем с аналогичной стороны на реализацию функции lines (которая производит разбиение по переводам строк).</p>
+            <p>Исходная структура данных (список символов) в данном случае не требует разбора в локальном контексте. Мы осуществляем промежуточные вычисления (break) и уже
+результаты break разбираем на составляющие в локальном контексте и даём им имена. Далее мы всё-таки разбираем s' на компоненты. Первый символ, перевода строки, мы игнорируем, а оставшуюся часть строки обрабатываем рекурсивно.</p>
+            <p>Последним действием мы собираем структуру данных.</p>
+          </aside>
+        </section>
+          <section style="text-align: left">
+              <b>Модификация неизменных структур</b>
+<img src="persistent-data-structures/Path-copying.png"/>
+        </section>
+
+        <section>
+          <b>Красивые структуры данных (список)</b>
+          <pre><code class="haskell" data-trim>
+data List a = Nil | Cons a List a
+          </code></pre>
+          <pre><code class="haskell" data-trim>
+data [a]    = []  | a : [a]
+          </code></pre>
+            <pre><code class="scala" data-trim>
+sealed trait List[+T]
+case object Nil extends List[Nothing]
+final case class Cons[+T](head: T, tail: List[T])
+  extends List[T]
+            </code></pre>
+          <div class="fragment">
+            <pre><code class="scala" data-trim>
+sealed abstract class List[+A] extends AbstractSeq[A] with ..
+case object Nil extends List[Nothing]
+final case class ::[B](
+  private var hd: B, 
+  private[scala] var tl: List[B]) extends List[B]
+            </code></pre>
+          </div>
+          <aside class="notes">
+            <p>Односвязный список представляет собой либо пустой список, либо пару - голова/хвост. В Хаскеле предусмотрен встроенный синтаксис для списков.</p>
+            <p>На Scala - аналогичная структура, только немного более громоздко.</p>
+            <p>По производительности - очень неплохая структура данных для типовых вариантов использования в качестве неизменяемой структуры данных.</p>
+            <p>Посмотрим, что там под капотом...</p>
+            <p>[NF] О, ужас! Здесь же переменные!</p>
+            <p>Как же так оказалось, что в immutable структуре содержатся var? Это как раз следствие низкоуровневой оптимизации. hd модифицируется в методе чтения данных,
+            а tl модифицируется в ListBuffer'е при добавлении элементов в конец списка. Тем самым достигается разумная производительность - O(1) при добавлении элементов. И O(1) при конвертации в список (типичный способ использования списков - конструирование через CanBuildFrom и последующая конвертация в список).
+            При конвертации в List используется copy-on-write механизм. То есть после конвертации выставляется флаг. И если мы попытаемся добавить следующий элемент, то весь буфер будет автоматически скопирован.</p>
+          </aside>
+        </section>
+        <section>
+          <b>Красивые структуры данных (Rope/веревка)</b>
+<img src="persistent-data-structures/Rope_string_concat.png"/>
+          <p>Производительность</p>
+          <ul>
+            <li class="fragment">Index O(log n)</li>
+            <li class="fragment">Concat O(log n) (в худшем случае - O(n))</li>
+            <li class="fragment">Split O(log n)</li>
+            <li class="fragment">Insert O(log n) (в худшем случае - O(n))</li>
+            <li class="fragment">Delete O(log n)</li>
+          </ul>
+          <aside class="notes">
+            <p>Интересной структурой является Rope для хранения длинных строк. 
+Это immutable структура данных, которая обеспечивает весьма неплохие показатели для всех основных операций со строками.</p>
+            <p></p>
+            <p></p>
+            <p></p>
+            <p></p>
+          </aside>
+        </section>
+        <section>
+          <b>Красивые структуры данных (Rope 2)</b>
+        <section>
+<img src="persistent-data-structures/Rope_split_before.png"/>
+        </section>
+        <section>
+<img src="persistent-data-structures/Rope_split_after.png"/>
+        </section>
+        <section>
+<img src="persistent-data-structures/Rope_split_after2.png"/>
+        </section>
+          <aside class="notes">
+            <p>На рисунках представлены преобразования структуры данных при выполнении операции split.</p>
+            <p>Можно видеть, что начиная снизу создаются дополнительные узлы, и формируются две новые ветви и два новых корня.</p>
+            <p></p>
+            <p></p>
+            <p></p>
+          </aside>
+        </section>
+        <section>
+          <b>Красно-чёрные деревья</b>
+          <ul>
+            <li>Обычные деревья бинарного поиска</li>
+            <li class="fragment">К узлам добавлен цвет - красный/чёрный</li>
+            <li class="fragment">И поддерживаются инварианты:
+            <ul>
+              <li>красные узлы не могут ссылаться на красные узлы</li>
+              <li>количество чёрных узлов от вершины до пустых узлов одинаково для всего дерева</li>
+            </ul>
+            </li>
+            <li class="fragment">В результате: дерево полностью сбалансировано</li>
+          </ul>
+          <aside class="notes">
+            <p>Красно-чёрные деревья при любых операциях поддерживают два инварианта, связанных с цветами узлов. За счет этого обеспечивается оптимальная производительность дерева</p>
+            <p></p>
+            <p></p>
+            <p></p>
+            <p></p>
+          </aside>
+        </section>
+        <section>
+          <b>Красно-чёрные деревья (модель)</b>
+          <pre><code class="haskell" data-trim>
+data Color    = R | B
+data Tree elt = E | T Color (Tree elt) elt (Tree elt)
+          </code></pre>
+          <div class="fragment">
+            <pre><code class="scala" data-trim>
+sealed trait Color
+case object Red extends Color
+case object Black extends Color
+
+sealed trait Tree[+A]
+case object E extends Tree[Nothing]
+case class T[A](
+  color: Color,
+  left: Tree[A],
+  x: A, 
+  right: Tree[A]
+) extends Tree[A]
+            </code></pre>
+          </div>
+          <aside class="notes">
+            <p>Цвет - либо R красный, либо B черный.</p>
+            <p>А дерево - либо пустой узел, либо узел, содержащий цвет, левое/правое поддерево и элемент.</p>
+            <p>То же самое на Scala (немного более многословно)</p>
+            <p></p>
+            <p></p>
+          </aside>
+        </section>
+        <section>
+          <b>Красно-чёрные деревья (балансировка)</b>
+        <section>
+          <img src="persistent-data-structures/Rbt_balance.png" style="height: 140mm"/>
+          <aside class="notes">
+            <p>На рисунке представлены различные случаи нарушения инвариантов и способы исправления нарушения. </p>
+
+            <p>Рисунок из статьи Криса Окасаки про красно-черные деревья (J. Functional Programming 9(4) 471–477, July 1999. 
+Cambridge University Press, 471 Red-Black Trees in a Functional Setting CHRIS OKASAKI)</p>
+            <p>Например, если ... </p>
+            <p>Также можно смотреть на эти способы исправления инвариантов как на повороты/развороты дерева</p>
+            <p></p>
+          </aside>
+        </section>
+        <section>
+            <pre><code class="scala" data-trim>
+  def balance[A: Ordering](n: T[A]): Tree[A] = n match {
+    case T(Black, T(Red, T(Red, a, x, b), y, c), z, d) => ???
+    case T(Black, T(Red, a, x, T(Red, b, y, c)), z, d) => ???
+    case T(Black, a, x, T(Red, T(Red, b, y, c), z, d)) => ???
+    case T(Black, a, x, T(Red, b, y, T(Red, c, z, d))) => ???
+    case t                                             => t
+  }
+            </code></pre>
+        </section>
+        <section>
+            <pre><code class="scala" data-trim>
+  def balance[A: Ordering](n: T[A]): Tree[A] = n match {
+    case ... => T(Red, T(Black, a, x, b), y, T(Black, c, z, d))
+    case ... => T(Red, T(Black, a, x, b), y, T(Black, c, z, d))
+    case ... => T(Red, T(Black, a, x, b), y, T(Black, c, z, d))
+    case ... => T(Red, T(Black, a, x, b), y, T(Black, c, z, d))
+    case t   => t
+  }
+            </code></pre>
+        </section>
+          <aside class="notes">
+            <p>Видно, что результирующая часть дерева имеет идентичную структуру во всех случаях исправления.</p>
+            <p></p>
+            <p></p>
+            <p></p>
+            <p></p>
+          </aside>
+        </section>
+          <section style="text-align: left">
+              <b>Структуры данных, представляющие вычисления</b>
+          <ul>
+            <li class="fragment">lazy val</li>
+            <li class="fragment">by ref</li>
+            <li class="fragment">Task (fs2) (~ IO)</li>
+            <li class="fragment">Stream (fs2)</li>
+          </ul>
+              <aside class="notes">
+                  <p>Среди структур данных особое место занимают структуры, включающие отложенные вычисления. Эти структуры являются неизменными в том смысле, что либо результат вычисления запоминается и больше не изменяется, либо в точности те же вычисления могут быть выполнены повторно.</p>
+                  <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А результат запоминается.</p>
+                  <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
+                  <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
+                  <p>[NF] Stream - конечный автомат, </p>
+              </aside>
+          </section>
+          <section style="text-align: left">
+              <b>Корректное программирование</b>
+          <ul>
+            <li>Программа делает, что от неё ожидают</li>
+            <li class="fragment">не зависает, не "падает" с исключениями</li>
+            <li class="fragment">ожидания <=> "очевидность" правильной работы</li>
+            <li class="fragment"></li>
+          </ul>
+              <aside class="notes">
+                  <p>Обычно трудно точно сказать, что значит корректная программа. Зачастую все заинтересованные лица очень по-разному представляют, что должна делать программа. Здесь мы будем говорить о корректности с точки зрения программиста. То есть, программист, анализируя программу может в значительной степени корректно понять как она работает, и это понимание будет очень близко к тому, что происходит на самом деле.</p>
+                  <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А результат запоминается.</p>
+                  <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
+                  <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
+                  <p>[NF] Stream - конечный автомат, </p>
+              </aside>
+          </section>
+          <section style="text-align: left">
+              <b>Корректное программирование (merge sort JavaScript)</b>
+          <pre><code class="javascript" data-trim>
+function merge(left, right, arr) {
+  var a = 0;
+ 
+  while (left.length && right.length) {
+    arr[a++] = (right[0] < left[0]) ? right.shift() 
+                                    : left.shift();
+  }
+  while (left.length) {
+    arr[a++] = left.shift();
+  }
+  while (right.length) {
+    arr[a++] = right.shift();
+  }
+}
+ 
+          </code></pre>
+<!--
+function mergeSort(arr) {
+  var len = arr.length;
+ 
+  if (len === 1) { return; }
+ 
+  var mid = Math.floor(len / 2),
+      left = arr.slice(0, mid),
+      right = arr.slice(mid);
+ 
+  mergeSort(left);
+  mergeSort(right);
+  merge(left, right, arr);
+}
+ 
+var arr = [1, 5, 2, 7, 3, 9, 4, 6, 8];
+mergeSort(arr); // arr will now: 1, 2, 3, 4, 5, 6, 7, 8, 9
+-->
+              <aside class="notes">
+                  <p>Обычно трудно точно сказать, что значит корректная программа. Зачастую все заинтересованные лица очень по-разному представляют, что должна делать программа. Здесь мы будем говорить о корректности с точки зрения программиста. То есть, программист, анализируя программу может в значительной степени корректно понять как она работает, и это понимание будет очень близко к тому, что происходит на самом деле.</p>
+                  <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А результат запоминается.</p>
+                  <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
+                  <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
+                  <p>[NF] Stream - конечный автомат, </p>
+              </aside>
+          </section>
+          <section style="text-align: left">
+              <b>Корректное программирование (merge sort Haskell)</b>
+          <pre><code class="haskell" data-trim>
+merge []         ys                   = ys
+merge xs         []                   = xs
+merge xs@(x:xt) ys@(y:yt) | x <= y    = x : merge xt ys
+                          | otherwise = y : merge xs yt
+ 
+          </code></pre>
+<!-- 
+
+split (x:y:zs) = let (xs,ys) = split zs in (x:xs,y:ys)
+split [x]      = ([x],[])
+split []       = ([],[])
+ 
+mergeSort []  = []
+mergeSort [x] = [x]
+mergeSort xs  = let (as,bs) = split xs
+                in merge (mergeSort as) (mergeSort bs)
+-->
+              <aside class="notes">
+                  <p>Обычно трудно точно сказать, что значит корректная программа. Зачастую все заинтересованные лица очень по-разному представляют, что должна делать программа. Здесь мы будем говорить о корректности с точки зрения программиста. То есть, программист, анализируя программу может в значительной степени корректно понять как она работает, и это понимание будет очень близко к тому, что происходит на самом деле.</p>
+                  <p>[NF] lazy val - простейший случай. Вычисление не выполняется, пока не потребуется результат. А результат запоминается.</p>
+                  <p>[NF] by ref - просто сохраняем ссылку на функцию и вызваем, когда требуется.</p>
+                  <p>[NF] Task - by ref на стероидах. Инкапсулирует отложенное вычисление и позволяет подклеивать последующие шаги вычислений. Главным образом, позволяет сериализовать (упорядочить) шаги, обладающие побочными эффектами, так как обычные вычисления могут быть легко переупорядочены. Гораздо лучше Future с точки зрения предсказуемости результатов и эффективности использования ресурсов.</p>
+                  <p>[NF] Stream - конечный автомат, </p>
+              </aside>
+          </section>
+          <section style="text-align: left">
+              <b>Производительность (память)</b>
+          <ul>
+            <li class="fragment">результаты вычислений - новые структуры данных</li>
+            <li class="fragment">отличия - память для структур данных</li>
+            <li class="fragment"></li>
+          </ul>
+              <aside class="notes">
+                  <p>Собственно вычисления - аналогичны по производительности, поэтому про них мы ничего особенного не будем говорить.
+                  </p>
+                  <p>Однако память при таком подходе расходуется достаточно активно</p>
+                  <p>[NF] Для многих вычислений необходимо сконструировать результат вычисления. Причем практически на каждом уровне выполнения мы должны упаковать результаты в некоторую структуру.</p>
+
+                  <p>[NF] </p>
+                  <p>[NF] </p>
+                  <p>[NF] </p>
+              </aside>
+          </section>
+        <section style="text-align: left">
+          <b>Выделение памяти, сборка мусора</b>
+            <pre><code class="scala" data-trim>
+            </code></pre>
+          <aside class="notes">
+            <p></p>
+            <p></p>
+            <p></p>
+            <p></p>
+            <p></p>
+          </aside>
+        </section>
+      <section style="text-align: left">
+          <b>Limitations of case classes</b>
+          <ul>
+              <li>sparse data
+                  <ul>
+                      <li>sets of case classes + per field data copying;</li>
+                      <li>optional fields;</li>
+                      <li>fields of type `Try`/`Either`/`\/`.</li>
+                  </ul>
+              </li>
+              <li class="fragment">events are unrelated case classes  + manual event application</li>
+              <li class="fragment">runtime metainformation = annotations + reflection</li>
+              <!--<li>schema definition</li>-->
+          </ul>
+          <aside class="notes">
+              <p>Let's see _ how `case classes` work _ for the various data representation needs.</p>
+              <p>For incomplete data representation we will often see different sets of case classes in
+                  different layers and have to manually copy the data from one representation to another.
+                  Another often seen solution is
+                  to declare some of the fields as optional and check the presence of data every time we access the property.</p>
+              <p>If we want to preserve the conversion error, then `Try` or [ˈaɪðə]`Either` might be used instead of the `Option`.</p>
+
+              <p>[NF] For capturing events _ we have to implement _ a dedicated set of classes and
+                  an associated special interpreter _ that will apply the events to data. There is almost no way
+                  to reuse property names or types or create a versatile interpreter.
+              </p>
+              <p>[NF] To preserve metainformation along with the property _ we do have some mechanism in place.
+                  We can access metainformation using annotations and reflection.
+                  Unfortunately, it is very constrained and really not the first-class. For instance, we cannot
+                  associate a type class instance with rich logic, nor we can use our classes with rich metainformation.</p>
+          </aside>
+      </section>
+        <section style="text-align: left">
+          <b>Advantages of ontology data representations</b>
+          <ul>
+            <li>sparse data
+              <ul>
+                <li>typed maps and json ~ `Map`-like;</li>
+                <li>property conversion errors.</li>
+              </ul>
+            </li>
+            <li class="fragment">property-related events (by it's `PropertyId`);</li>
+            <li class="fragment" style="list-style: none;">
+                          <pre><code class="scala" data-trim>
+case class NewPropertyValue[A,B](
+  instanceId: Id[A],
+  propertyId: PropertyId[Record[A], B],
+  newValue: B)
+                          </code></pre>
+            </li>
+            <li class="fragment">metainformation - in map or in a custom `PropertyId`</li>
+            <li class="fragment">variety of data representations</li>
+            <!--<li>schema definition</li>-->
+          </ul>
+          <aside class="notes">
+            <p>Here are some features of ontology data representations with
+            regards to the above mentioned application needs.</p>
+            <p>typed maps and json, like any other map-like structures _ naturally represent absence.</p>
+            <p>We can easily preserve conversion errors along with the property itself. Just map the property identifier to error description.</p>
+            <p>[NF] Events about individual properties can be represented as a simple case class with just reference to a property id.</p>
+            <p>[NF] We create a single case class with the new value and the `PropertyId`.
+              There is no need to create separate case classes for each property.
+              And the interpreter of these events does not depend on the domain model and can be reused easily.</p>
+
+            <p>[NF] Additional metainformation can be easily associated with a property either in a separate map, or directly in the custom `PropertyId`.
+            We can also use type classes wherever we find appropriate.</p>
+            <p>[NF] As there are various data representations, they can be used in various layers of application to
+              fit their needs. </p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Architectural perspective of the ontology</b>
+          <ul>
+            <li>domain model - in a central place</li>
+            <li class="fragment">ontology = unified domain language</li>
+            <li class="fragment">Easy meta programming (including macros)</li>
+            <li class="fragment">DB schema inference</li>
+            <li class="fragment">Natural event sourcing</li>
+            <li class="fragment">Automatic data transformation</li>
+            <li class="fragment">UI hints</li>
+            <li class="fragment">Domain constraints</li>
+            <!--<li>schema definition</li>-->
+          </ul>
+          <aside class="notes">
+            <p>The influence of ontology on architecture is tremendous</p>
+            <ul>
+              <li>Domain model is defined in a single place without any repetition.</li>
+              <li>[NF] Ontology defines a unified domain language for the complete application.</li>
+              <li>[NF] It makes it easy to implement meta programming (like code generation, macros, DSLs, and things like that)</li>
+              <li>[NF] Database schema can also be inferred from the same domain model. It can easily evolve together with the domain model.</li>
+              <li>[NF] Using ontology we can naturally implement event sourcing. We can focus on a particular changed property, on a subset of properties,
+                or on a subschema of an entity. And we can record
+              events in a unified way for any properties.</li>
+              <li>[NF] Because all application layers speak the same domain language,
+                the data is fully automatically transferred between application layers. There is no need to
+              manually create error prone copying methods.</li>
+              <li>[NF] One of the possible ways to define user interface is to associate additional metainformation with
+              properties and generate UI through templates that are selected and parametrized by that metainformation.</li>
+              <li>[NF] The last but not least _ is the ability _ to reuse the validation logic, defined in the ontology model,
+                across the application.</li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Typed ontology (conclusion)</b>
+          <ul>
+            <li>Single source of domain model</li>
+            <li>Compile time type safe JSON</li>
+            <li>Wide range of applications</li>
+          </ul>
+          <aside class="notes">
+            <p>In conclusion I would like to encourage you to do an experiment with typed ontology and
+            see how it can change the way _ we represent _ our data.</p>
+            <p>You'll enjoy flexibility of JSON within familiar [scAla]Scala type space.</p>
+            <p></p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+            <div style="float: right">
+                <img src="lambda-conference.png" width="300" style="border: 0" />
+                <br/>
+                <img src="CotivitiLabs_Logo_Vert_Pos_FullColor_RGB.png" width="300" style="border: 0"/>
+                <br/>
+                <img src="Magritte_TheSonOfMan_cut.jpg" width="300" style="border: 0"/>
+            </div>
+            <p><b>Appreciation to Sponsors</b></p>
+            <ul>
+                <li>Lambda Conf committee</li>
+                <li>Cotiviti Labs</li>
+                <li>An anonymous volunteer</li>
+            </ul>
+            <div class="fragment">
+                <p></p>
+              <b>Questions?</b>
+              <p>
+                <small>Arseniy Zhizhelev, <a href="http://primetalk.ru/">Primetalk</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+              </p>
+
+            </div>
+            <aside class="notes">
+                <p>I wish to say thank you to people who gave me the opportunity to attend the conference -
+                    Lambda Conf team, Cotiviti Labs team, and a volunteer who wished to remain anonymous.</p>
+                <p>[NF] I'm running a company Primetalk, and you may get in touch with me via the provided email.</p>
+                <p>Questions?</p>
+            </aside>
+        </section>
+      </div>
+    </div>
+
+    <script src="reveal-js/lib/js/head.min.js"></script>
+    <script src="reveal-js/js/reveal.js"></script>
+
+    <script>
+      // More info https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+          { src: 'reveal-js/plugin/markdown/marked.js' },
+          { src: 'reveal-js/plugin/markdown/markdown.js' },
+          { src: 'reveal-js/plugin/notes/notes.js', async: true },
+          { src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+        ]
+      });
+    </script>
+  </body>
+</html>
