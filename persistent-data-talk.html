@@ -137,9 +137,9 @@ private[immutable] trait VectorPointer[T] {
             <b>Введение</b>
             <ul>
                 <li>Времена изменились</li>
-                <li class="fragment">высокоуровневые программы</li>
-                <li class="fragment">многоядерность (с 2005 г.)</li>
-                <li class="fragment">неизменяемые данные оказались <b>удобнее</b>
+                <li class="fragment">Высокоуровневые программы</li>
+                <li class="fragment">Многоядерность (с 2005 г.)</li>
+                <li class="fragment">Неизменяемые данные оказались <b>удобнее</b>
                 </li>
             </ul>
             <aside class="notes">
@@ -170,7 +170,8 @@ private[immutable] trait VectorPointer[T] {
             Математические выкладки в тетрадке и на маленькой школьной доске. Постепенное построение рисунков. Конструирование из отдельных деталей (без переделки).
             -->
             <ul>
-                <li>Математические выкладки <img src="persistent-data-structures/maths_writing.jpg" style="float: right;" align="right"/>
+                <img src="persistent-data-structures/maths_writing.jpg" style="float: right;" align="right"/>
+                <li>Математические выкладки
                 </li>
                 <li class="fragment">Построение рисунков добавлением элементов</li>
                 <li class="fragment">Сборка модели из деталей конструктора</li>
@@ -284,7 +285,7 @@ def lines(s: String): List[String] =
   }
             </code></pre>
             <aside class="notes">
-                <p>Взглянем с аналогичной стороны на реализацию функции lines (которая производит разбиение по переводам
+                <p>Посмотрим с аналогичной стороны на реализацию функции lines (которая производит разбиение по переводам
                     строк).</p>
                 <p>Исходная структура данных (список символов) в данном случае не требует разбора в локальном контексте.
                     Мы осуществляем промежуточные вычисления (break) и уже
@@ -334,7 +335,7 @@ final case class ::[B](
             <aside class="notes">
                 <p>Односвязный список представляет собой либо пустой список, либо пару - голова/хвост. </p>
                 <p> [NF] В Хаскеле предусмотрен встроенный синтаксис для списков.</p>
-                <p>На Scala - аналогичная структура, только немного более громоздко.</p>
+                <p>[NF] На Scala - аналогичная структура, только немного более громоздко.</p>
                 <p>По производительности - очень неплохая структура данных для типовых вариантов использования в
                     качестве неизменяемой структуры данных.</p>
                 <p>Посмотрим, что там под капотом...</p>
@@ -374,7 +375,7 @@ final case class ::[B](
             </aside>
         </section>
         <section>
-            <b>Красивые структуры данных (Rope 2)</b>
+            <b>Красивые структуры данных (Rope, разрезание)</b>
             <section>
                 <img src="persistent-data-structures/Rope_split_before.png"/>
             </section>
@@ -532,7 +533,7 @@ case class T[A](
             <pre><code class="scala" data-trim>
 def fahrenheitToCelsius(f: Double): Double =
   (f - 32.0) * (5.0/9.0)
-def converter[F[_]](implicit F: Sync[F]): F[Unit] =
+def converter[F[_]: Sync]: F[Unit] =
   io.file.readAll[F](Paths.get("fahrenheit.txt"), 4096)
     .through(text.utf8Decode)
     .through(text.lines)
@@ -550,7 +551,7 @@ val u: Unit = converter[IO].unsafeRunSync()
         <section style="text-align: left">
             <b>Корректное программирование</b>
             <ul>
-                <li>Программа делает, что от неё ожидают:
+                <li>Программа делает то, что от неё ожидают:
                 <ul>
                     <li class="fragment">Не зависает, не "падает" с исключениями</li>
                     <li class="fragment">Результаты правильные </li>
@@ -574,18 +575,18 @@ val u: Unit = converter[IO].unsafeRunSync()
         <section style="text-align: left">
             <b>Корректное программирование (пример 1 merge sort JavaScript)</b>
             <pre><code class="javascript" data-trim>
-function merge(left, right, arr) {
-  var a = 0;
+function merge(left, right, arr) {   // 1,2,3
+  var a = 0;                         // 4
  
   while (left.length && right.length) {
-    arr[a++] = (right[0] < left[0]) ? right.shift() 
+    arr[a++] = (right[0] < left[0]) ? right.shift() // ~
                                     : left.shift();
   }
-  while (left.length) {
+  while (left.length) {                             // ?
     arr[a++] = left.shift();
   }
-  while (right.length) {
-    arr[a++] = right.shift();
+  while (right.length) {                            // len
+    arr[a++] = right.shift();                       // exc?
   }
 }
             </code></pre>
@@ -632,10 +633,13 @@ mergeSort(arr); // arr will now: 1, 2, 3, 4, 5, 6, 7, 8, 9
         <section style="text-align: left">
             <b>Корректное программирование (merge sort Haskell)</b>
             <pre><code class="haskell" data-trim>
-merge []         ys                   = ys
-merge xs         []                   = xs
-merge xs@(x:xt) ys@(y:yt) | x <= y    = x : merge xt ys
+merge []         ys                   = ys // triv 1
+merge xs         []                   = xs // 2
+merge xs@(x:xt) ys@(y:yt) | x <= y    = x : merge xt ys // 6
                           | otherwise = y : merge xs yt
+                // head
+                // first = min
+                // rec short
             </code></pre>
             <pre class="fragment"><code class="haskell" data-trim>
 split (x:y:zs) = let (xs,ys) = split zs in (x:xs,y:ys)
@@ -670,18 +674,18 @@ mergeSort xs  = let (as,bs) = split xs
             </aside>
         </section>
         <section style="text-align: left">
-            <b>Корректное программирование (2)</b>
+            <b>Корректное программирование - неизменяемые данные</b>
             <ul>
                 <li class="fragment">
                     Все имена - константы в пределах области видимости</li>
                 <li class="fragment">Нет эфемерного состояния</li>
                 <li class="fragment">Нет неожиданных побочных эффектов</li>
             </ul>
-            <ul>
-                <li>
-                 </li>
-                <li class="fragment"></li>
-            </ul>
+            <!--<ul>-->
+                <!--<li>-->
+                 <!--</li>-->
+                <!--<li class="fragment"></li>-->
+            <!--</ul>-->
             <aside class="notes">
                 <p>Какие преимущества дают неизменяемые данные с точки зрения корректности программы?</p>
                 <p>[NF] Программисту легче рассуждать о работе программы, если он может опереться на
@@ -693,7 +697,6 @@ mergeSort xs  = let (as,bs) = split xs
                     При анализе кода это создает дополнительную нагрузку и возможность ошибиться.</p>
                 <p>[NF] Опасно передавать изменяемые структуры данных в другие методы и сторонние библиотеки.
                 При некоторых условиях данные могут оказаться повреждены.</p>
-
             </aside>
         </section>
         <section style="text-align: left">
@@ -702,6 +705,7 @@ mergeSort xs  = let (as,bs) = split xs
                 <li class="fragment">Результаты вычислений - новые структуры данных</li>
                 <li class="fragment">Сборка мусора!</li>
                 <li class="fragment">Алгоритмы - специальные</li>
+                <li class="fragment">Просто работает</li>
             </ul>
             <aside class="notes">
                 <p>Собственно вычисления - аналогичны по производительности, поэтому про них мы ничего особенного не
@@ -715,7 +719,7 @@ mergeSort xs  = let (as,bs) = split xs
                     выходят затраты на обработку отдельных элементов, а накладные расходы на коллекции окупаются.
                 </p>
 
-                <p>[NF] </p>
+                <p>[NF] Производительность - как минимум, работает вместо падений и поиска багов.</p>
                 <p>[NF] </p>
                 <p>[NF] </p>
             </aside>
@@ -736,9 +740,10 @@ mergeSort xs  = let (as,bs) = split xs
         <section style="text-align: left">
             <b>Заключение</b>
             <ul>
-                <li>Неизменяемые данные - в арсенал программиста</li>
-                <li>В многопоточных программах - обязательно</li>
-                <li></li>
+                <li>Неизменяемые данные - в арсенал программиста!</li>
+                <li class="fragment">В многопоточных программах - обязательно
+                    <div  class="fragment">(heisenbug)</div></li>
+                <li class="fragment">В программах со сложной бизнес-логикой - обязательно</li>
             </ul>
             <aside class="notes">
                 <p>В заключение хочу призвать программистов активно использовать неизменяемые данные и
@@ -747,20 +752,16 @@ mergeSort xs  = let (as,bs) = split xs
                     разделяемые данные будут неизменяемыми. Правда, вы потеряете увлекательную возможность
                     проявить свои детективные способности по отлавливанию редко проявляющихся багов.
                 </p>
-                <p></p>
+                <p>Если в программе - сложная бизнес-логика, то добавление переменных приведёт к многократному усложнению,
+                 и получению неверных результатов.</p>
             </aside>
         </section>
         <section style="text-align: left">
-
-            <div class="fragment">
-                <p></p>
-                <b>Вопросы?</b>
-                <p>
-                    <small>Арсений Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a
-                            href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
-                </p>
-
-            </div>
+            <b>Вопросы?</b>
+            <p>
+                <small>Арсений Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a
+                        href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+            </p>
             <aside class="notes">
                 <p>Вопросы</p>
             </aside>
