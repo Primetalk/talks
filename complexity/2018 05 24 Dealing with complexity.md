@@ -2,9 +2,12 @@ Title: Dealing with software complexity
 
 Goal: In more or less simple words, without formulas, using manager's language, explain that DSL is a good thing for complex problems.
 
+
 Publish in Linked In.
 
 Image: https://www.maxpixel.net/Complexity-Fractal-Geometric-3d-Dimensional-1722098
+
+Picture title: Complexity by MaxPixel
 
 Tags: Dealing with #software #complexity with #abstraction and #dsl
 
@@ -50,9 +53,9 @@ Plan:
 
 # Dealing with software complexity
 
-Complex problems arise in various business areas. In fact, new business opportunities emerge in the fields that have such extraordinary complexity that they were not considered as potentially feasible. To name a few of such businesses: genome sequencing, formal blockchain-based smart contracts, automatic understanding and interpretation of laws and legal acts. The programming side of the business becomes rather diverse and unsurprisingly complex. Ignoring the complexity growth results in unmanabeable and hard-to-maintain codebase. And this ultimately endangers business existence. Given the need to  keep the codebase up to date with the ever-changing landscape, we can say that the business is set for failure, buried under the burden of the unmanaged complexity.
+Complex problems arise in various business areas. In fact, new business opportunities emerge in the fields that have such extraordinary complexity that they were not considered as potentially feasible. To name a few of such businesses: genome sequencing, formal blockchain-based smart contracts, automatic understanding and interpretation of laws and legal acts. The programming side of the business becomes rather diverse and unsurprisingly complex. Ignoring the complexity growth results in unmanageable and hard-to-maintain codebase. And this ultimately endangers business existence. Given the need to  keep the codebase up to date with the ever-changing landscape, we can say that the business is set for failure, buried under the burden of the unmanaged complexity.
 
-Why program systems are so intricate? The fact that business conquers complex domains seems to play the key role in the increase of complexity. The bigger problem we are addressing, the higher precision of our solutions, the more people working on the system, or the higher variability of input data - the more complex program is required. And the complexity just explodes when there is a demand to increase all of the factors, bringing a super complex program to life.
+Why program systems are so intricate? The fact that business conquers complex domains seems to play the key role in the increase of complexity. The bigger problem we are addressing, the higher precision of our solutions, the more people working on the system, or the higher variability of input data — the more complex program is required. And the complexity just explodes when there is a demand to increase all of the factors, bringing a super complex program to life.
 
 So, what is the problem? Why dealing with super complex programs could present a problem? Unmanaged complexity quickly makes manager's life a nightmare: unexpected bugs, features that require too much effort to implement, data corruptions that are revealed too late, extra costs for cloud resources, security breaches. And given all that, fixing and repairing is slower than the software erosion. Only a heroic effort can temporary delay the ineluctable disaster.
 
@@ -66,7 +69,7 @@ Among various ways to abstract system parts there is one that we want to emphasi
 
 A language provides a handpicked collection of abstractions, with elements that harmonize and work together very well. A coherent set of libraries unleashes the full potential of the language and provides the actual components that do the job. So, instead of abstracting one component after another, we obtain a high level toolset of well defined, tested and composable components. The diversity of components might be called the "basis vocabulary" because in order to use it one has to learn all the "words" in the vocabulary. (Another similar abstraction mechanism is to use a domain specific framework within the existing programming language. This approach has some limitations and there is often abstraction leak that introduces limitations on further simplifications.)
 
-When we select a more appropriate programming language, we have to admit that the new language contains new concepts and new notions. This means that learning of these notions is required and, consequently, some kind of knowledge management is needed. One prominent example is switching from Java to Scala. Scala is not only a language equipped with higher level abstractions, it is also a language that has a few flavors or layers of depth. (For example, Martin Odersky [discriminates](https://www.scala-lang.org/old/node/8610)  a few language levels - A1, A2, A3, L1, L2, L3. Each level has its own knowledge and skill set.) So when switching to Scala, one might have to precisely specify the required depth of knowledge or the language level.
+When we select a more appropriate programming language, we have to admit that the new language contains new concepts and new notions. This means that learning of these notions is required and, consequently, some kind of knowledge management is needed. One prominent example is switching from Java to Scala. Scala is not only a language equipped with higher level abstractions, it is also a language that has a few flavors or layers of depth. (For example, Martin Odersky [discriminates](https://www.scala-lang.org/old/node/8610)  a few language levels — A1, A2, A3, L1, L2, L3. Each level has its own knowledge and skill set.) So when switching to Scala, one might have to precisely specify the required depth of knowledge or the language level.
 
 If a team has already moved to a better language and the complexity is still high, then the next possible big step is to use a dedicated DSL (Domain Specific Language). DSL operates at the level of domain specific abstractions in contrast to the base language, which operates at the level of general purpose abstractions. Due to the uniqueness nature of business pioneers, this kind of DSL often does not yet exist and it has to be designed and implemented. Does it worth it? Thanks to the promise of significant complexity decrease it seems to be inevitable at certain level of business maturity and problem complexity. Other abstraction ways like extracting components one by one might be too slow and might not allow the company to break through.
 
