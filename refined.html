@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Уточненные (refined) типы (с примерами на Sсala)</title>
+
+		<meta name="description" content="A talk on 2018-12-20, Voronezh, Scala User Group">
+		<meta name="author" content="Arseniy Zhizhelev">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="reveal-js/css/reveal.css">
+		<link rel="stylesheet" href="reveal-js/css/theme/white.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="reveal-js/lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+				<section>
+					<h3>Уточненные (refined) типы</h3>
+					<p>
+						<small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+					</p>
+
+				</section>
+
+				<section>
+					<h3>Зачем нужны типы?</h3>
+
+					<ul>
+						<li>Валидация кода на этапе компиляции</li>
+						<li class="fragment">Доказательство программы</li>
+						<li class="fragment">Сохранение валидности кода в ходе рефакторинга/развития программы</li>
+						<li class="fragment">Поддержка intelli sense</li>
+					</ul>
+					<p class="fragment">Чем точнее типы, тем меньше кода и тестов</p>
+				</section>
+
+				<section>
+                    <h3>Неточные типы</h3>
+
+					<pre><code class="scala" data-trim>
+def getElement[A](vec: Vector[A])(index: Int): Option[A] = {
+  if(index >= 0 && index < arr.length)
+    Some(arr(index))
+  else
+    None
+}
+					</code></pre>
+                    <ul>
+                        <li class="fragment">функция - "тотальная" (total) -
+							возвращает значение при любых значениях аргументов</li>
+                        <li class="fragment">обязательна runtime-проверка границ массива</li>
+                        <li class="fragment">функция делает три вещи сразу
+							<ul>
+								<li class="fragment">проверяет входные значения</li>
+								<li class="fragment">выполняет свою работу</li>
+								<li class="fragment">возвращает ошибку (None)</li>
+							</ul>
+						</li>
+                    </ul>
+				</section>
+
+                <section>
+                    <section>
+                        <h2>Точные типы</h2>
+                        <pre><code class="scala" data-trim>
+  def getElement[A, N](vec: Vector[A] Refined Size[Equal[N]])
+                   (i: Int Refined And[NonNegative, Less[N]]): A =
+    vec.value(i)
+                        </code></pre>
+                        <ul>
+                            <li class="fragment">функция - "тотальная" (total) -
+                                возвращает значение при любых значениях аргументов</li>
+                            <li class="fragment">проверка границ массива исключена</li>
+                            <li class="fragment">ошибки исключены</li>
+                            <li class="fragment">функия соответствует SRP (single responsibility principle)</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <p>Вывод (inference, widening)</p>
+                        <pre><code class="scala" data-trim>
+  val i: Int Refined Greater[W.`1`.T] = ???
+  def sqrt(z: Int Refined Greater[W.`0`.T]) = ???
+  import eu.timepit.refined.auto._
+  sqrt(i)
+                            </code></pre>
+                        <ul>
+                            <li class="fragment">более узкий диапазон приводится к более широкому</li>
+                            <li class="fragment">похоже на отношение
+                                <pre><code class="scala" data-trim>
+Int Refined Greater[W.`1`.T] &lt;:&lt; Int Refined Greater[W.`0`.T]
+                            </code></pre>
+                            </li>
+
+                        </ul>
+                    </section>
+                    <section>
+                        <p>Возможности из коробки</p>
+                        <ul>
+                            <li>составные предикаты ( 0 <= x && x <= 65535)
+                                <pre><code class="scala" data-trim>
+type PortNumber = Int Refined And[ Not[Less[W.`0`.T]],
+                                   Less[W.`65536`.T] ]
+                        </code></pre></li>
+                            <li class="fragment">составные предикаты со списком условий
+                                <pre><code class="scala" data-trim>
+type AllowedChar = Char Refined
+                   AnyOf[Digit :: Letter ::
+                         Whitespace :: HNil]
+                        </code></pre>
+                            </li>
+                            <li class="fragment">автоматическая валидация по предикату, заданному типом</li>
+                            <li class="fragment">пользовательские пометки типов</li>
+
+                        </ul>
+                    </section>
+                    <section>
+                        <p>Возможности из коробки 2</p>
+                        <ul>
+                            <li class="fragment">предикаты на элементы коллекций
+                                <pre><code class="scala" data-trim>
+type ListOfNonEmptyStrings = List[String] Refined
+                             Forall[NonEmpty]
+type MyListOfInts          = List[Int] Refined
+                             Tail[Exists[Positive]]
+                        </code></pre>
+                            </li>
+                            <li class="fragment">предикаты на размер коллекции
+                                <pre><code class="scala" data-trim>
+type ListOfSize3[T]    = List[T] Refined
+                         Size[Equal[W.`3`.T]]
+type ListOfEvenSize[T] = List[T] Refined
+                         Size[Even]
+type ListOfSizeGt2[T]  = List[T] Refined
+                         MinSize[W.`2`.T]
+                        </code></pre>
+                            </li>
+
+                        </ul>
+                    </section>
+                    <section>
+                        <p>Возможности из коробки 3</p>
+                        <ul>
+                            <li class="fragment">поддержка RegEx-типов
+                                <pre><code class="scala" data-trim>
+type EMail = String Refined
+  MatchesRegex[W.`"^[a-zA-Z0-9.!#$%&’*+/=?^_\`{|}~-]+@[a-zA-Z0-9-]+(?:\\\\.[a-zA-Z0-9-]+)*$"`.T]
+                        </code></pre>
+                            </li>
+                            <li class="fragment">поддержка нескольких стандартных форматов - IPv4, IPv6, URL, URI, UUID, SHA256, Xml, etc.</li>
+                        </ul>
+                    </section>
+                </section>
+
+                <section>
+					<section>
+						<p>Применения: circe</p>
+						<pre><code class="scala" data-trim>
+type PortNumber = Int    Refined
+                  Interval.Closed[_0, W.`65535`.T]
+type StringUrl  = String Refined Url
+
+case class EndPoint(url: StringUrl, port: PortNumber)
+
+implicit val decodeEndPoint: Decoder[EndPoint] =
+  Decoder.forProduct2("url", "port")(EndPoint.apply)
+                        </code></pre>
+						<ul>
+							<li class="fragment">декодирование даст обычную ошибку разбора, если предикат не выполнится</li>
+							<li class="fragment">кодирование игнорирует Refined</li>
+						</ul>
+					</section>
+                    <section>
+                        <p>Применения: doobie</p>
+                        <pre><code class="scala" data-trim>
+"throw exception if the refinement fails" in {
+  secondaryValidationFailedCaught_?(
+   sql"select -1".query[PositiveInt]
+     .unique.transact(xa).void.unsafeRunSync
+  )
+}
+                        </code></pre>
+                    </section>
+                    <section>
+                        <p>Применения: slick</p>
+                        <pre><code class="scala" data-trim>
+  class FooBars(tag: Tag) extends Table[Foobar](tag, "FOOBARS")
+  {
+    def bar = column[PosInt]("BAR", O.PrimaryKey)
+    def foo = column[NonEmptyString]("FOO")
+
+    def * = (bar, foo) <> (FooBar.tupled, FooBar.unapply)
+  }
+                        </code></pre>
+                    </section>
+				</section>
+				<section>
+					<section>
+						<p>Как работает под капотом?</p>
+						<pre><code class="scala" data-trim>
+final class Refined[T, P] private (val value: T)
+      extends AnyVal
+
+object Refined {
+  def unsafeApply[T, P](value: T): Refined[T, P] =
+    new Refined(value)
+}
+                        </code></pre>
+						<ul>
+							<li class="fragment">compile-time обертка</li>
+							<li class="fragment">приватный конструктор</li>
+							<li class="fragment">фантомный тип предиката</li>
+						</ul>
+					</section>
+					<section>
+						<pre><code class="scala" data-trim>
+trait Validate[T, P] {
+  def validate(t: T): Either[String,Refined[T,P]]
+}
+                        </code></pre>
+						<ul>
+							<li class="fragment">type-class, позволяющий проверить предикат P над значением T</li>
+							<li class="fragment"><i>(в библиотеке немного сложнее за счет поддержки Refined и @@,
+                                а также качественных сообщений об ошибках)</i></li>
+						</ul>
+					</section>
+					<section>
+						<pre><code class="scala" data-trim>
+  final case class IsZero()
+
+  implicit def isZeroValidate[T](
+    implicit n: Numeric[T]
+  ): Validate[T, IsZero] = (t: T) => {
+    if (n.zero == t)
+      Right(Refined.unsafeApply(t))
+    else
+      Left("IsZero failed for " + t)
+  }
+                        </code></pre>
+						<ul>
+							<li class="fragment">простой предикат без параметров</li>
+							<li class="fragment">обычный код проверки условия</li>
+						</ul>
+					</section>
+					<section>
+						<pre><code class="scala" data-trim>
+  final case class IsEqual[U](u: U)
+
+  implicit def equalValidate[T, U](
+    implicit w: Witness.Aux[U]
+  ): Validate[T, IsEqual[U]] = (t: T) => {
+    if (w.value == t)
+      Right(Refined.unsafeApply(t))
+    else
+      Left("IsEqual(" + w.value + ") failed for " + t)
+  }
+                        </code></pre>
+						<ul>
+                            <li class="fragment">предикат с параметром</li>
+							<li class="fragment">тип U - синглетонный тип</li>
+							<li class="fragment">Witness - способ получить значение синглетона,
+                                из которого построен тип</li>
+						</ul>
+					</section>
+					<section>
+						<pre><code class="scala" data-trim>
+  shapeless.Witness.`0`.T
+  def selectDynamic(tpeSelector: String): Any =
+    macro SingletonTypeMacros.witnessTypeImpl
+                        </code></pre>
+						<ul>
+                            <li class="fragment">синглетонные типы поддерживаются на уровне компилятора</li>
+                            <li class="fragment">но не очень поддерживаются на уровне синтаксиса</li>
+							<li class="fragment">Witness (из shapeless) создает синглетонный тип
+                                из строкового представления</li>
+						</ul>
+					</section>
+					<section>
+                        <p>Комбинаторы And, Or, ...</p>
+						<pre><code class="scala" data-trim>
+  final case class And[A,B]()
+  final case class Or[A,B]()
+  final case class Not[A]()
+
+  implicit def andValidate[T, A, B](
+    implicit va: Validate[T, A], vb: Validate[T, B]
+  ): Validate[T, And[A, B]] = (t: T) => {
+    (va.validate(t), vb.validate(t)) match {
+      case (Right(_), Right(_)) =>
+        Right(Refined.unsafeApply(t))
+      case (Left(e), _) => Left(e)
+      case (_, Left(e)) => Left(e)
+    }
+  }
+                        </code></pre>
+						<ul>
+							<li class="fragment">фантомные типы - функции от нескольких аргументов
+                            в пространстве типов</li>
+							<li class="fragment">каждый аргумент имеет свой валидатор</li>
+						</ul>
+					</section>
+                    <section>
+                        <p>Вывод (inference, widening)</p>
+                        <pre><code class="scala" data-trim>
+  case class Inference[P, C](isValid: Boolean)
+
+  type ==&gt;[A, B] = Inference[A, B]
+
+  implicit def greaterInferenceNat[A &lt;: Nat, B &lt;: Nat](
+    implicit ta: ToInt[A], tb: ToInt[B]
+  ): Greater[A] ==&gt; Greater[B] =
+    Inference(ta() &gt; tb(),
+      s"greaterInferenceNat(${ta()}, ${tb()})")
+
+  implicit def autoInfer(implicit ir: A ==> B) =
+    macro InferMacro.impl[F, T, A, B]
+
+  def impl = macro {
+    val inference = eval(ir)
+    if (!inference.isValid) {
+      abort(invalidInference(...))
+    }
+    unsafeRewrap(rt)
+  }
+                        </code></pre>
+                        <ul>
+                            <li class="fragment">type-class времени компиляции</li>
+                            <li class="fragment">ограниченный вывод - только для известных предикатов</li>
+                        </ul>
+                    </section>
+                </section>
+
+				<section>
+					<h2>Светлое будущее</h2>
+					<pre><code class="scala" data-trim contenteditable>
+def max(x: Int, y: Int): { v: Int => v >= x && v >= y } =
+  if (x > y) x else y
+
+type NonNegative = { v: Int => v >= 0}
+
+def sqrt(z: NonNegative): Double =
+  scala.math.sqrt(z.toDouble)
+
+val u: Int = ???
+sqrt(max(0,u))
+					</code></pre>
+                    <ul>
+                        <li>LiquidTyper в Dotty</li>
+                        <li class="fragment">использует Z3 SMT-решатель</li>
+                        <li class="fragment">статья: <a href="http://lara.epfl.ch/~kuncak/papers/SchmidKuncak16CheckingPredicate.pdf">[2016] Georg Stefan Schmid, Viktor Kuncak:
+                            SMT-Based  Checking  of  Predicate-Qualified  Types  for  Scala</a></li>
+                    </ul>
+				</section>
+
+
+                <section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ## refined-типы
+                            * позволяют разделить проверки и код бизнес-логики
+                            * позволяют сформировать сложные условия
+                            * поддерживают проверку условий на этапе компиляции
+                            * поддерживают безопасное декодирование в `Either`
+                        </script>
+                    </section>
+                    <section data-markdown>
+                        <script type="text/template">
+                            ## Ограничения
+                            * выводы и проверка подтипов только для простых предикатов
+                            * обособленный набор inference, не связанный с validate
+                            * повторение логики в трех местах - типы, validate, inference
+                        </script>
+                    </section>
+                </section>
+
+				<section style="text-align: left;">
+					<h1>THE END</h1>
+					<p>
+						- <a href="https://github.com/Primetalk/talks/tree/master/refined.html">See the presentation at GitHub</a> <br>
+						- <a href="mailto:zhizhelev@primetalk.ru">Mail to zhizhelev at Primetalk.</a>
+					</p>
+				</section>
+			</div>
+
+		</div>
+
+		<script src="reveal-js/lib/js/head.min.js"></script>
+		<script src="reveal-js/js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'reveal-js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'reveal-js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'reveal-js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'reveal-js/plugin/zoom-js/zoom.js', async: true },
+					{ src: 'reveal-js/plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
