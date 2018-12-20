@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Язык программирования формальных документов</title>
+
+		<meta name="description" content="Notes for language round table discussion on 2018-12-20, Voronezh, Scala User Group">
+		<meta name="author" content="Arseniy Zhizhelev">
+
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="reveal-js/css/reveal.css">
+		<link rel="stylesheet" href="reveal-js/css/theme/black.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="reveal-js/lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+				<section>
+					<h3>Язык программирования формальных документов</h3>
+					<h4>Круглый стол</h4>
+                    <p>
+                        <small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+                    </p>
+
+				</section>
+
+				<section>
+					<h3>1. Язык логики медицинских документов</h3>
+
+					<ul>
+						<li>функциональный (λ-исчисление)</li>
+						<li class="fragment">идентификаторы с пробелами</li>
+						<li class="fragment">вывод типов</li>
+						<li class="fragment">гибкая ассоциативность на основе типов</li>
+					</ul>
+                </section>
+
+				<section>
+                    <h3>Пример</h3>
+
+					<pre><code class="basic" data-trim>
+    let   minimal required age   be   18  years;
+    let   required gender   be   "m";
+    let   constraints   be
+           minimal age constraint &&
+           gender constraint;
+    require constraints;
+    if   "J0135"   is billed
+    then
+        policy failed
+    else
+        not applicable
+					</code></pre>
+                </section>
+
+				<section>
+
+					<pre><code class="basic" data-trim>
+  let   minimal age constraint   be (
+     let   age   be of type   Long;
+     let   minimal required age   be of type   Long;
+
+     age < minimal required age
+  );
+
+  let gender constraint be (
+    let   gender            be of type   String;
+    let   required gender   be of type   String;
+
+    gender != required gender
+  );
+					</code></pre>
+                </section>
+
+                <section>
+                    <section>
+                        <h3>2. SAT-решатели</h3>
+
+                        <ul>
+                            <li>Доказывают теоремы</li>
+                            <li class="fragment">NP-полная задача</li>
+                            <li class="fragment">эффективные алгоритмы - миллионы ограничений на сотни тысяч переменных</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <p>пример</p>
+					<pre><code class="java" data-trim>
+assert  x1 && !x5 && x4
+assert !x1 &&  x5 && x3 && x4
+					</code></pre>
+					<pre><code class="basic" data-trim>
+  (x1 ∨ ¬x5 ∨ x4) ∧ (¬x1 ∨ x5 ∨ x3 ∨ x4)
+					</code></pre>
+					<pre><code class="DIMACS-CNF" data-trim>
+ 1 -5 4
+-1 5 3 4
+					</code></pre>
+                        <ul>
+                            <li>найти значения x1, ... xn</li>
+                            <li class="fragment">или доказать невозможность
+                                <pre><code class="DIMACS-CNF" data-trim>
+ 1
+-1
+					            </code></pre>
+                            </li>
+                        </ul>
+                    </section>
+                </section>
+
+                <section>
+                    <section>
+                        <h3>3. SMT-решатели</h3>
+
+                        <ul>
+                            <li>Доказывают теоремы, включающие числа и коллекции</li>
+                            <li class="fragment"></li>
+                            <li class="fragment">эффективные алгоритмы</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <h3>Вывод совместимости типов</h3>
+
+                        <pre><code class="scala" data-trim contenteditable>
+def max(x: Int, y: Int): { v: Int => v >= x && v >= y } =
+  if (x > y) x else y
+
+type NonNegative = { v: Int => v >= 0}
+
+def sqrt(z: NonNegative): Double =
+  scala.math.sqrt(z.toDouble)
+
+val u: Int = ???
+sqrt(max(0,u))
+					</code></pre>
+                        <ul>
+                            <li>LiquidTyper в Dotty</li>
+                            <li class="fragment">использует Z3 SMT-решатель</li>
+                            <li class="fragment">статья: <a href="http://lara.epfl.ch/~kuncak/papers/SchmidKuncak16CheckingPredicate.pdf">[2016] Georg Stefan Schmid, Viktor Kuncak:
+                                SMT-Based  Checking  of  Predicate-Qualified  Types  for  Scala</a></li>
+                        </ul>
+                    </section>
+				</section>
+
+                <section>
+                    <section>
+                        <h2>4. Модель договора</h2>
+
+                        <ul>
+                            <li class="fragment">мета условия (преамбула/заключение) (о контракте)
+                                <ul>
+                                    <li>тип договора</li>
+                                    <li>стороны</li>
+                                    <li>срок действия</li>
+                                    <li class="fragment">термины и определения</li>
+                                </ul>
+                            </li>
+                            <li class="fragment">предмет договора
+                                <ul>
+                                    <li class="fragment">обязательства сторон</li>
+                                    <li class="fragment">возможности/права сторон</li>
+                                    <li class="fragment">условные (по событию) обязанности и возможности</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </section>
+                    <section>
+                        <p>События</p>
+                        <ul>
+                            <li>выполнение действия по договору</li>
+                            <li class="fragment">наступление внешних условий</li>
+                            <li class="fragment">истечение сроков с указанных событий</li>
+                        </ul>
+                        <ul>
+                            <li class="fragment">события оформляются актами</li>
+                            <li class="fragment">оракул гарантирует соответствие актов реальному миру</li>
+                        </ul>
+                    </section>
+                    <section>
+                        <p>Формулировка контракта в темпоральной логике</p>
+                        <ul>
+                            <li>проверка выполнимости требований контракта для цепочки событий</li>
+                            <li class="fragment">вычисление следствий из префикса цепочки событий</li>
+                            <li class="fragment">осуществление автоматических действий по контракту,
+                                играя роль одной из сторон</li>
+                        </ul>
+                    </section>
+
+                </section>
+
+				<section style="text-align: left;">
+					<h3>Обсуждение</h3>
+                    <ul>
+                        <li>приложения (юриспруденция, строительство, медицина)
+                            <ul>
+                                <li>контракты</li>
+                                <li class="fragment">нормативные документы</li>
+                            </ul>
+                        </li>
+                        <li class="fragment">программное обеспечение
+                            <ul>
+                                <li>языки/IDE</li>
+                                <li class="fragment">алгоритмы обработки</li>
+                                <li class="fragment">репозитории формализованных документов</li>
+                            </ul>
+                        </li>
+                        <li class="fragment">источники финансирования
+                            <ul>
+                                <li>kick starter/patreon</li>
+                                <li class="fragment">venture funds</li>
+                                <li class="fragment">...</li>
+                            </ul>
+                        </li>
+                    </ul>
+				</section>
+			</div>
+
+		</div>
+
+		<script src="reveal-js/lib/js/head.min.js"></script>
+		<script src="reveal-js/js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'convex', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'reveal-js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'reveal-js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'reveal-js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'reveal-js/plugin/zoom-js/zoom.js', async: true },
+					{ src: 'reveal-js/plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>

@@ -5,6 +5,11 @@ Talks:
 - [Refined library (RU)](refined.html)
 - [Types in Scala (RU)](types.html)
 - [Persistent data structures (RU)](persistent-data-talk.html)
+- [Language (RU)](language-logic-en-notes.html)
+
+Posts
+
+- Dealing with complexity on Linked In
 
 
 ### Notes
