@@ -1,5 +1,6 @@
 Tags: Scala, continuous deployment, software development, configuration management, DevOps, abnormal programming
 PAA: http://www.drdobbs.com/architecture-and-design/xebialabs-why-dev-needs-devops/240166541, 
+Labels: compilable configuration, configuration management, Scala, 
 
 # Compilable configuration of a distributed system
 
@@ -8,6 +9,8 @@ The configuration is represented directly in Scala language in a type safe manne
 An example implementation is described in details. 
 Various aspects of the proposal are discussed, 
 including influence on the overall development process.
+
+![Overall configuration management process](https://habrastorage.org/webt/71/bl/ax/71blaxtldz-ia4yftyebaxbam7c.png)
 
 ### Introduction
 

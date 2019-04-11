@@ -1,5 +1,6 @@
 Tags: Scala, continuous deployment, разработка ПО, управление конфигурацией, DevOps, ненормальное программирование
 PAA: http://www.drdobbs.com/architecture-and-design/xebialabs-why-dev-needs-devops/240166541, 
+Labels: компилируемая конфигурация, менеджмент конфигурации, Scala, 
 
 # Компилируемая конфигурация распределённой системы
 
@@ -7,6 +8,8 @@ PAA: http://www.drdobbs.com/architecture-and-design/xebialabs-why-dev-needs-devo
 Конфигурация представлена напрямую в компилируемом языке (Scala) с использованием безопасных типов.
 В этом посте разобран пример такой конфигурации и рассмотрены различные аспекты внедрения компилируемой
 конфигурации в общий процесс разработки.
+
+![Жизненный цикл конфигурации](https://habrastorage.org/webt/71/bl/ax/71blaxtldz-ia4yftyebaxbam7c.png)
 
 ### Введение
 
