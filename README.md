@@ -28,6 +28,6 @@
 - 2013 [Functional Reactive Programming: Introduction to SynapseGrid](http://synapse-grid.primetalk.ru/2013/09/functional-reactive-programming.html)
 - 2013 [Обработка событий в реальном масштабе времени с помощью SynapseGrid](https://habr.com/ru/company/primetalk/blog/204596/)
 
-(Все публикации на Хабре: https://habr.com/ru/users/primetalk/posts/)
+([Список публикаций на Хабре](https://habr.com/ru/users/primetalk/posts/))
 
 *Notes: [This site address](https://primetalk.github.io/talks/). [Edit the page](https://github.com/Primetalk/talks/edit/master/README.md). [documentation](https://help.github.com/categories/github-pages-basics/).*
