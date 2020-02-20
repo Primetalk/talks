@@ -2,6 +2,7 @@
 
 ### Talks:
 
+- 2020 [Доказательство программ, язык Arend (RU)](arend.html)
 - 2018 Типы данных на основе предикатов (Refined types) [`refined` library (RU)](refined.html), [video](https://youtu.be/qpYI90b5k5Y) [flickr](https://www.flickr.com/photos/outsourcing/sets/72157704166482141) (на [встрече λ-vrn](https://www.dataart.ru/news/vstrecha-obnovlennogo-tekhnicheskogo-soobshestva-proshla-v-voronezhe/) в DataArt).
 - 2019 [Язык программирования для юристов (Language for lawyers)](language-logic-en-notes.html) (draft)
 - 2017 Тестируем логические функции, или Как мне пригодились линзы и категории (user story) ([видео](https://www.youtube.com/watch?v=ZoZY6dV_yOo), [анонс](https://dataart.ua/events/voronezh/scala-user-group-scalacheck-i-logicheskie-funktsii/))

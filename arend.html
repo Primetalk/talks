@@ -1,0 +1,278 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Доказательство программ, Arend</title>
+
+		<link rel="stylesheet" href="reveal-js/css/reveal.css">
+		<link rel="stylesheet" href="reveal-js/css/theme/sky.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h3>Доказательство программ</h3>
+					<h4>язык Arend</h4>
+					<h4 class="fragment">математическое программирование</h4>
+					<p><i>Арсений Жижелев, Праймтолк</i></p>
+					<p class="fragment">Disclaimer: доклад начинающего математика, возможны ошибки</p>
+				</section>
+				<section>
+					<h4>План</h4>
+					<ul>
+						<li>развитие системы типов, state-of-the-art</li>
+						<li>примеры доказательств от простого к сложному</li>
+						<li>пример доказательства алгоритма</li>
+						<li>IMHO - перспективы</li>
+					</ul>
+				</section>
+				<section>
+					<section>
+						<p>Значения, типы, операции</p>
+					</section>
+					<section>
+						<pre><code class="arend" data-trim>
+a : A
+						</code></pre>
+						<ul>
+							<li class="fragment">значение и тип - противопоставлены</li>
+							<li class="fragment">тип определяет доступные операции со значением/функции</li>
+							<pre class="fragment"><code class="arend" data-trim>
+\func inc(i : Int) : Int => i + 1
+							</code></pre>
+							<li class="fragment">значения - во время исполнения, типы - во время компиляции (и частично - во время исполнения)</li>
+						</ul>
+					</section>
+					<section>
+						<pre><code class="arend" data-trim>
+\data List (A : \Type)
+  | nil
+  | cons A (List A)
+						</code></pre>
+						<ul>
+							<li class="fragment">обычный список с элементами типа A</li>
+							<pre class="fragment"><code class="arend" data-trim>
+\func reverse{A : \Type}(as : List A) : List A => reverse0 as nil
+  \where {
+    \func reverse0{A : \Type}(as res : List A) : List A \elim as
+      | nil => res
+      | cons a l => reverse0 l (cons a res)
+  }
+							</code></pre>
+							<li class="fragment">пример обычной функции</li>
+						</ul>
+					</section>
+					<section>
+						<pre><code class="arend" data-trim>
+a : A
+A : \Type
+\func Function1(A B : \Type) : A -> B
+\func ListType(A : \Type) : List A
+						</code></pre>
+						<ul>
+							<li class="fragment">типы похожи на значения</li>
+							<li class="fragment">над типами можно выполнять операции почти как над значениями,
+								а значения можно использовать в типах</li>
+							<li class="fragment">типы и значения - во время компиляции</li>
+							<li class="fragment">во время исполнения - ничего. Arend пока не позволяет запустить программу</li>
+						</ul>
+					</section>
+					<section>
+						<p>вектор фиксированной длины</p>
+						<pre><code class="arend" data-trim>
+\data Vec (A : \Type) (n : Nat) \elim n
+  | 0     => fnil
+  | suc n => fcons A (Vec A n)
+						</code></pre>
+						<ul>
+							<li class="fragment">можно смешивать значения и типы и выполнять операции</li>
+							<pre class="fragment"><code class="arend" data-trim>
+\func vec (A : \Type) (n : Nat) : \Type => Vec A n
+\func prepend {A : \Type} {n : Nat} (v : vec A n) (a : A) : vec A (n + 1) =>
+  fcons a v
+\func head {A : \Type} {n : Nat} (xs : Vec A (suc n)) : A
+  | fcons x _ => x
+\func tail {A : \Type} {n : Nat} (xs : Vec A (suc n)) : Vec A n
+  | fcons _ xs => xs
+						</code></pre>
+<!--							<li class="fragment">над типами можно выполнять операции почти как над значениями, а значения можно использовать как типы</li>-->
+						</ul>
+					</section>
+					<section>
+						<p>доказательство свойств: длина списка</p>
+						<pre><code class="arend" data-trim>
+\func length' {A : \Type} (xs : List A) : Nat
+  | nil      => 0
+  | cons _ l => length' l
+						</code></pre>
+						<ul>
+							<li class="fragment">что-то здесь не так</li>
+							<pre class="fragment"><code class="arend" data-trim>
+\func length'==0 {A : \Type} (xs : List A) : length'(xs) = 0
+  | nil      => idp
+  | cons a l => length'==0(l)
+						</code></pre>
+
+							<li class="fragment">то есть мы смогли доказать, что наше определение length'
+								тождественно равно 0 для любых списков</li>
+						</ul>
+					</section>
+					<section>
+						<p>доказательство свойств: если длина списка = 0, то список пуст</p>
+						<p>`length = 0 -> xs = nil`</p>
+						<pre><code class="arend" data-trim>
+\func length=0->nil {A : \Type} (xs : List A)
+                    (length-xs=0 : length(xs) = 0) : xs = nil \elim xs
+  | nil      => idp
+  | cons a l => absurd (suc/=0 (idp *> length-xs=0))
+						</code></pre>
+						<ul>
+							<li class="fragment">это доказательство не работает для length'</li>
+							<pre class="fragment"><code class="arend" data-trim>
+\func length {A : \Type} (xs : List A) : Nat
+  | nil => 0
+  | cons _ l => suc (length l)
+						</code></pre>
+							<li class="fragment">исправили ошибку</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<h4>Разбор базовых примеров из руководства</h4>
+					<a href="https://arend-lang.github.io/documentation/tutorial/PartI/synndef">https://arend-lang.github.io/.../synndef</a>
+				</section>
+				<section>
+					<h4>Разбор примеров доказательств из руководства</h4>
+					<a href="https://arend-lang.github.io/documentation/tutorial/PartI/propsnproofs">https://arend-lang.github.io/.../propsnproofs</a>
+				</section>
+				<section>
+					<h4>Разбор доказательства алгоритма</h4>
+					<ul>
+						<li class="fragment">алгоритм фильтрации списка</li>
+						<li class="fragment"><a href="https://habr.com/ru/company/JetBrains-education/blog/470632/">алгоритм сортировки списка (вставками)</a></li>
+					</ul>
+					<p></p>
+				</section>
+				<section>
+					<section>
+						<h3>Обсуждение</h3>
+					</section>
+					<section>
+						<p>язык не является полным по Тьюрингу!</p>
+						<ul>
+							<li>нет неограниченной рекурсии (и бесконечных циклов)</li>
+							<li>все программы завершаются</li>
+						</ul>
+					</section>
+					<section>
+						<p>зачем?</p>
+						<ul>
+							<li class="fragment">можно избавится от рантайм-проверок (null, границы массива)</li>
+							<li class="fragment">уверенная валидация данных</li>
+							<li class="fragment">библиотеки с доказанными алгоритмами, и язык, позволяющий убедиться в доказанности алгоритмов</li>
+							<li class="fragment">меньше тестов, больше гарантий (почти как QuickCheck для всех значений)</li>
+							<li class="fragment">защита от ошибок во время рефакторинга</li>
+						</ul>
+					</section>
+					<section>
+						<p>когда?</p>
+						<ul>
+							<li class="fragment">тенденция переноса современных/новейших технологий
+								<ul>
+									<li>Haskell -> Scala</li>
+									<li>streaming -> Java</li>
+									<li>DOT -> Scala</li>
+								</ul>
+							</li>
+							<li class="fragment">Dotty (Scala 3) будет иметь улучшенную поддержку зависимых типов</li>
+							<li class="fragment">наличие библиотек с доказанными алгоритмами, например, WhyML - http://toccata.lri.fr/gallery/why3.en.html</li>
+						</ul>
+					</section>
+					<section>
+						<p>кому?</p>
+						<ul>
+							<li class="fragment">строительство:
+								<ul>
+									<li>архитектура, проектирование требуют серьёзных знаний и математики,</li>
+									<li>собственно стройка: не требует знаний, только опыт/дисциплина</li>
+								</ul>
+							</li>
+							<li class="fragment">медицина:
+								<ul>
+									<li>разработка генетических технологий</li>
+									<li>сестринский уход за больными</li>
+								</ul>
+							</li>
+							<li class="fragment">программирование:
+								<ul>
+									<li>медицинские, финансовые, космические программы требуют серьёзных знаний и математики,</li>
+									<li>формы/сайты: доступны многим</li>
+								</ul>
+							</li>
+						</ul>
+					</section>
+					<section>
+						<p>Профессиональная ответственность</p>
+						<ul>
+							<li class="fragment">дорогие ошибки
+								<ul>
+									<li>смерть из-за рентгеновского аппарата</li>
+									<li>авария на дорогом космическом аппарате</li>
+									<li>смерть в результате ДТП с автопилотом</li>
+									<li>поражение в сражении в результате багов ПО</li>
+								</ul>
+							</li>
+							<li class="fragment">(Р.Мартин, 2012): драконовские меры со стороны законодателей
+								<ul>
+									<li>ограничение на профессию</li>
+									<li>профессиональные стандарты</li>
+									<li>дресс-код</li>
+								</ul>
+							</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<h3>Заключение</h3>
+					<ul>
+						<li>развитые типы - надёжные программы</li>
+						<li>сложность программ - возрастает</li>
+						<li>применимость - не везде необходимо</li>
+					</ul>
+				</section>
+			</div>
+		</div>
+
+		<script src="reveal-js/lib/js/head.min.js"></script>
+		<script src="reveal-js/js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
