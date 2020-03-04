@@ -66,12 +66,12 @@ a : A
 						<ul>
 							<li class="fragment">обычный список с элементами типа A</li>
 							<pre class="fragment"><code class="arend" data-trim>
-\func reverse{A : \Type}(as : List A) : List A => reverse0 as nil
-  \where {
-    \func reverse0{A : \Type}(as res : List A) : List A \elim as
-      | nil => res
-      | cons a l => reverse0 l (cons a res)
-  }
+\func reverse{A : \Type}(as : List A) : List A
+  => reverse0 as nil
+  \where
+    \func reverse0{A : \Type}(as accum : List A) : List A \elim as
+      | nil       => accum
+      | cons a as => reverse0 as (cons a accum)
 							</code></pre>
 							<li class="fragment">пример обычной функции</li>
 						</ul>
@@ -87,7 +87,7 @@ A : \Type
 							<li class="fragment">типы похожи на значения</li>
 							<li class="fragment">над типами можно выполнять операции почти как над значениями,
 								а значения можно использовать в типах</li>
-							<li class="fragment">типы и значения - во время компиляции</li>
+							<li class="fragment">типы и значения доступны во время компиляции</li>
 							<li class="fragment">во время исполнения - ничего. Arend пока не позволяет запустить программу</li>
 						</ul>
 					</section>
@@ -109,22 +109,21 @@ A : \Type
 \func tail {A : \Type} {n : Nat} (xs : Vec A (suc n)) : Vec A n
   | fcons _ xs => xs
 						</code></pre>
-<!--							<li class="fragment">над типами можно выполнять операции почти как над значениями, а значения можно использовать как типы</li>-->
 						</ul>
 					</section>
 					<section>
 						<p>доказательство свойств: длина списка</p>
 						<pre><code class="arend" data-trim>
 \func length' {A : \Type} (xs : List A) : Nat
-  | nil      => 0
-  | cons _ l => length' l
+  | nil       => 0
+  | cons _ xs => length' xs
 						</code></pre>
 						<ul>
 							<li class="fragment">что-то здесь не так</li>
 							<pre class="fragment"><code class="arend" data-trim>
 \func length'==0 {A : \Type} (xs : List A) : length'(xs) = 0
-  | nil      => idp
-  | cons a l => length'==0(l)
+  | nil       => 0 ==< idp >== 0 `qed
+  | cons _ xs => length'==0(xs)
 						</code></pre>
 
 							<li class="fragment">то есть мы смогли доказать, что наше определение length'
@@ -132,20 +131,22 @@ A : \Type
 						</ul>
 					</section>
 					<section>
-						<p>доказательство свойств: если длина списка = 0, то список пуст</p>
+						<p>свойство: если длина списка = 0, то список пуст</p>
 						<p>`length = 0 -> xs = nil`</p>
 						<pre><code class="arend" data-trim>
 \func length=0->nil {A : \Type} (xs : List A)
                     (length-xs=0 : length(xs) = 0) : xs = nil \elim xs
-  | nil      => idp
-  | cons a l => absurd (suc/=0 (idp *> length-xs=0))
+  | nil        => nil ==< idp >== nil `qed
+  | cons _ xs  =>
+   \let  suc=0 => suc (length xs) ==< length-xs=0 >== 0 `qed
+   \in   suc/=0 suc=0
 						</code></pre>
 						<ul>
 							<li class="fragment">это доказательство не работает для length'</li>
 							<pre class="fragment"><code class="arend" data-trim>
 \func length {A : \Type} (xs : List A) : Nat
-  | nil => 0
-  | cons _ l => suc (length l)
+  | nil       => 0
+  | cons _ xs => suc (length xs)
 						</code></pre>
 							<li class="fragment">исправили ошибку</li>
 						</ul>
@@ -205,10 +206,11 @@ A : \Type
 					<section>
 						<p>кому?</p>
 						<ul>
+							<li class="fragment">градация: сложные знания/простые навыки, опыт, дисциплина</li>
 							<li class="fragment">строительство:
 								<ul>
-									<li>архитектура, проектирование требуют серьёзных знаний и математики,</li>
-									<li>собственно стройка: не требует знаний, только опыт/дисциплина</li>
+									<li>архитектура, проектирование</li>
+									<li>собственно стройка</li>
 								</ul>
 							</li>
 							<li class="fragment">медицина:
@@ -219,8 +221,8 @@ A : \Type
 							</li>
 							<li class="fragment">программирование:
 								<ul>
-									<li>медицинские, финансовые, космические программы требуют серьёзных знаний и математики,</li>
-									<li>формы/сайты: доступны многим</li>
+									<li>медицинские, финансовые, космические программы</li>
+									<li>формы, сайты, скрипты</li>
 								</ul>
 							</li>
 						</ul>
@@ -249,11 +251,22 @@ A : \Type
 				<section>
 					<h3>Заключение</h3>
 					<ul>
-						<li>развитые типы - надёжные программы</li>
-						<li>сложность программ - возрастает</li>
-						<li>применимость - не везде необходимо</li>
+						<li class="fragment">развитые типы - надёжные программы</li>
+						<li class="fragment">сложность программ возрастает</li>
+						<li class="fragment">применимость - не везде необходимо</li>
+						<li class="fragment">компилятор - прикладная математическая библиотека</li>
 					</ul>
 				</section>
+				<section>
+					<h3>Что почитать</h3>
+					<ul>
+						<li class="fragment">Учебник Arend - https://arend-lang.github.io/documentation/tutorial/PartI/</li>
+						<li class="fragment">Доказательство алгоритма сортировки - https://habr.com/ru/company/JetBrains-education/blog/470632/</li>
+						<li class="fragment">Библиотека доказанных алгоритмов Why3 - http://toccata.lri.fr/gallery/why3.en.html</li>
+					</ul>
+				</section>
+
+
 			</div>
 		</div>
 
