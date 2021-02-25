@@ -1,0 +1,532 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Потоковая обработка данных</title>
+
+    <link rel="stylesheet" href="reveal-js/css/reveal.css">
+<!--    <link rel="stylesheet" href="reveal-js/css/theme/black.css">-->
+    <link rel="stylesheet" href="reveal-js/css/theme/white.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>Потоковая обработка данных</h1>
+          <p>
+            <small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+          </p>
+          <aside class="notes">
+            <p>Сегодня мы рассмотрим обработку потока данных с использованием библиотеки fs2, 
+                немного затронем фреймворк akka-streams и SynapseGrid.</p>
+          </aside>
+
+        </section>
+<!--
+План:
+
+Ссылки:
+-->
+        <!--
+        -->
+          <section>
+            <section style="text-align: left">
+              <h3>План</h3>
+              <ul>
+                <li>Введение
+                    <ul>
+                        <li class="fragment">задачи потоковой обработки</li>
+                        <li class="fragment">отличие от пакетной обработки ("main"-style)</li>
+                        <li class="fragment">трансдьюсеры (автоматы с выходом)</li>
+                        <li class="fragment">сеть Петри</li>
+                    </ul>
+                </li>
+                  <li class="fragment">Часть 1. Примеры использования
+<!--                      <ul class="fragment">-->
+<!--                          <li>Числа Фибоначчи</li>-->
+<!--                          <li class="fragment">Частота буквы в словах</li>-->
+<!--                      </ul>-->
+                  </li>
+                  <li class="fragment">Часть 2. Детали реализации (упрощённая модель)
+<!--                      <ul class="fragment">-->
+<!--                          <li>Pull</li>-->
+<!--                          <li class="fragment"></li>-->
+<!--                      </ul>-->
+                  </li>
+                  <li class="fragment">Часть 3. Граф потоков
+                  </li>
+                  <li class="fragment">Домашнее задание</li>
+              </ul>
+              <aside class="notes">
+                <p>
+                  На слайде - примерный план занятия.
+                    На этом занятии мы только лишь обозначим основные элементы.
+                    Рекомендуется прочитать дополнительную литературу.
+
+                </p>
+              </aside>
+            </section>
+            <section style="text-align: left">
+              <b>Введение. Задачи потоковой обработки</b>
+              <ul>
+                <li class="fragment">чтение и обработка файла "налету" (ndjson, csv, ...)</li>
+                <li class="fragment">загрузка и скачивание файлов</li>
+                <li class="fragment">обработка аудио-потока в телефонии</li>
+                <li class="fragment">распознавание речи в поточном режиме</li>
+                <li class="fragment">поток событий (обработка, фильтрация, сохранение, передача дальше)</li>
+                <li class="fragment">веб-сервис с потоком входных запросов</li>
+                <li class="fragment">IoT</li>
+              </ul>
+            </section>
+              <section style="text-align: left">
+              <b>Введение. Streaming фрейворки (библиотеки)</b>
+              <ul>
+                <li class="fragment"><a href="https://doc.akka.io/docs/akka/current/stream/index.html">akka-streams</a></li>
+                <li class="fragment"><a href="https://fs2.io/">fs2</a></li>
+                <li class="fragment"><a href="https://spark.apache.org/">Spark</a></li>
+                <li class="fragment"><a href="https://flink.apache.org/">Flink</a></li>
+                <li class="fragment"><a href="https://github.com/Primetalk/SynapseGrid">SynapseGrid</a></li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <b>Введение. Конечный автомат с выходом (трансдьюсер)</b>
+              <p></p>
+              <img src="scala-study/fst-example.png" width="50%" height="50%"/>
+              <ul>
+                <li class="fragment">вход/выход - потоки символов. </li>
+                <li class="fragment">Ожидания зависят от состояния. Может порождать выход спонтанно.</li>
+                <li class="fragment">конечный объём памяти (bounded)</li>
+                <li class="fragment">композиция потоковых обработчиков</li>
+              </ul>
+                <aside class="notes">
+                    <p>Работа в поточном режиме несколько сложнее работы в линейном режиме.
+                        Нам недоступен файл целиком. Приходится строить алгоритм так, что он работает только с
+                        небольшой частью файла.
+                    </p>
+                    <p>Основной вопрос - как разбить на повторно-используемые модули и как их потом объединять.</p>
+                </aside>
+            </section>
+              <section style="text-align: left">
+                  <b>Введение. Сеть Петри</b>
+                  <p></p>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Detailed_petri_net.png" width="50%" height="50%"/>
+                  <ul>
+                      <li class="fragment">места - кружочки (там могут находиться данные)</li>
+                      <li class="fragment">переходы - прямоугольники (обработка данных)</li>
+                      <li class="fragment">граф - двудольный (места -> переходы -> места)</li>
+                      <li class="fragment">метки - чёрные кружочки (данные)</li>
+                  </ul>
+              </section>
+          </section>
+          <section>
+        <section style="text-align: left">
+          <b>Пример 1. Числа Фибоначчи (fs2)</b>
+          <pre><code class="scala" data-trim>
+    def fib(prev: BigInt, b: BigInt): Stream[Pure, BigInt] =
+        Stream.emit(b) ++ fib(b, prev + b)
+    val fib01 = fib(0, 1)
+          </code></pre>
+            <pre class="fragment"><code class="scala" data-trim>
+    assert(fib01.take(5).toList == List(1, 1, 2, 3, 5))
+          </code></pre>
+            <pre class="fragment"><code class="scala" data-trim>
+    assert(fib01
+        .map(_ .pow(2))
+        .filter(_ % 2 == 1)
+        .take(5).toList == List(1, 1, 9, 25, 169)
+    )
+          </code></pre>
+            <pre class="fragment"><code class="scala" data-trim>
+    assert(fib01.drop(55).head.toList ==
+                List(BigInt(225_851_433_717L))
+          </code></pre>
+          <aside class="notes">
+           [IDE] Рассмотрим пример 1. Бесконечный поток чисел Фибоначчи
+          </aside>
+        </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>Пример 2. Частота буквы a</b>
+                  <pre><code class="scala" data-trim>
+    def resourceIO(name: String): IO[InputStream] =
+        IO{getClass.getResourceAsStream(name)}
+
+    val largeFile: Stream[IO, Byte] =
+        fs2.io.readInputStream(resourceIO("large-file.txt"),
+        chunkSize = 4096, closeAfterUse = true)
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Пример 2. Частота буквы a (2)</b>
+                  <pre><code class="scala" data-trim>
+    val wordRegEx = raw"[a-zA-Z]+".r
+
+    def words: fs2.Pipe[IO, String, String] =
+        in => in.flatMap{ line =>
+            Stream.emits(wordRegEx
+                .findAllIn(line)
+                .map(_.toString)
+                .toList)
+        }
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Пример 2. Частота буквы a (3)</b>
+                  <pre><code class="scala" data-trim>
+    val largeFileWords = largeFile
+        .through(text.utf8Decode)
+        .through(text.lines)
+        .through(words)
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Пример 2. Частота буквы a (4)</b>
+                  <pre><code class="scala" data-trim>
+    case class Stat(charCount: Int, length: Int)
+
+    def wordStat(char: Char)(word: String): Stat =
+        Stat(word.count(_ == char), word.length)
+
+    def combine(a: Stat, b: Stat): Stat =
+        Stat(a.charCount + b.charCount, a.length + b.length)
+
+    def freq(a: Stat): Double = a.charCount * 1.0 / a.length
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Пример 2. Частота буквы a (5)</b>
+                  <pre><code class="scala" data-trim>
+    def freqIO(char: Char): IO[Double] =
+        largeFileWords
+            .map(wordStat(char))
+            .fold(Stat(0,0))(combine)
+            .map(freq)
+            .compile.toList.map(_.head)
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Пример 2. Частота буквы a (6)</b>
+                  <a href="https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html">https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html</a>
+                  <pre><code class="scala" data-trim>
+    @Test def testLetterFreq: Unit =
+        val freqA = freqIO('a').unsafeRunSync()
+        val expectedFreq = 8.5/100 //
+        assert(math.abs(freqA - expectedFreq) <= 0.01,
+                      s"freqА = $freqА")
+          </code></pre>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>Пример 3. Обнаружение структуры (парсинг)</b>
+                  <ul>
+                      <li>читаем посимвольно</li>
+                      <li class="fragment">переключаемся между состояниями</li>
+                      <li class="fragment">накапливаем промежуточные данные</li>
+                      <li class="fragment">иногда выдаём новую структуру</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>Пример 3. Обнаружение структуры (парсинг) (2)</b>
+
+                  <pre><code class="scala" data-trim>
+  def mapAccumulate[S, O2](init: S)(f: (S, O) => (S, O2)): Stream[F, (S, O2)]
+
+  def parseInQuotes: Pipe[Pure, Char, String] =
+    in => in
+      .mapAccumulate[Option[List[Char]], Option[String]](None: Option[List[Char]]){
+
+   S = Option[List[Char]]
+   O = Char
+   O2 = Option[String]
+
+   init = None - находимся вне кавычек
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Пример 3. Обнаружение структуры (парсинг) (3)</b>
+                  <pre><code class="scala" data-trim>
+  def parseInQuotes: Pipe[Pure, Char, String] =
+    in => in
+      .mapAccumulate[Option[List[Char]], Option[String]](None: Option[List[Char]]){
+        case (None, '\"') =>      // вне кавычек, обнаружили кавычки
+        case (None, _) =>         // вне кавычек, любой символ
+        case (Some(lst), '\"') => // внутри кавычек, обнаружили кавычки
+        case (Some(lst), char) => // внутри кавычек, любой символ
+      }
+                  </code></pre>
+                  <p class="fragment">ДЗ*: реализовать parseInQuotes с использованием Pull или другого фреймворка (akka-streams, SynapseGrid).</p>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>Часть 3. Граф потоков данных</b>
+                  <img src="https://doc.akka.io/docs/akka/current/images/simple-graph-example.png"/>
+                  <img src="scala-study/FlowSystem.png"/>
+
+              </section>
+              <section style="text-align: left">
+                  <b>Граф потоков данных (SynapseGrid)</b>
+                  <pre><code class="scala" data-trim>
+  // Объявляем систему с одним входом и одним выходом.
+  // Везде указываем текстовые имена,
+  // которые будут отображаться на картинке
+  object FlowSystem extends BaseTypedSystem("FlowSystem"):
+    val in:  Contact[Int] = input("in")
+    val out: Contact[Int] = output("out")
+
+    // строим систему, используя mutable builder.
+    override protected def defineSystem(implicit sb: SystemBuilder): Unit =
+      // два вспомогательных контакта
+      val bcast = contact[Int]("bcast")
+      val merge = contact[Int]("merge")
+      // функции преобразования данных
+      val f1, f2, f3, f4 = (i: Int) => i + 10
+      // соединяем контакты стрелочками и указываем,
+      // какое преобразование надо использовать.
+      (in -> bcast).map(f1, "f1")
+      (bcast -> merge).map(f2, "f2")
+      (bcast -> merge).map(f4, "f4")
+      (merge -> out).map(f3, "f3")
+
+    // Превращаем систему в обычную функцию
+    def f: Int => Iterable[Int] =
+      toDynamicSystem.toTransducer(in, out)
+
+  // используем построенную систему
+  val res = (1 to 3).flatMap(FlowSystem.f)
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Граф потоков данных (akka-streams)</b>
+                  <pre><code class="scala" data-trim>
+    val flowSystem = GraphDSL.create[FlowShape[Int, Int]](){ implicit builder: GraphDSL.Builder[NotUsed] =>
+      // промежуточные элементы - разветвление и слияние
+      val bcast: UniformFanOutShape[Int, Int] = builder.add(Broadcast[Int](2))
+      val merge: UniformFanInShape[Int, Int]  = builder.add(Merge[Int](2))
+      // конвертеры вход-выход
+      val f1, f2, f3, f4 = Flow[Int].map(_ + 10)
+      // добавляем к системе начальный и конечный конвертер,
+      // чтобы использовать их входы/выходы
+      val f1flow = builder.add(f1)
+      val f3flow = builder.add(f3)
+      // соединяем стрелочками все компоненты
+      f1flow.out ~> bcast
+      bcast ~> f2 ~> merge
+      bcast ~> f4 ~> merge
+      merge ~> f3flow.in
+      // явным образом описываем внешнюю форму системы.
+      FlowShape(f1flow.in, f3flow.out)
+    }
+    // используем построенную систему
+    val sink: Sink[Int, Future[Seq[Int]]] = Sink.seq[Int]
+    given ActorSystem = ActorSystem()
+    val g: Future[Seq[Int]] = Source(1 to 3).via(flowSystem).runWith(sink)
+    val res = Await.result(g, 1.second)
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Граф потоков данных (fs2)</b>
+                  <pre><code class="scala" data-trim>
+    // Объявляем систему с одним входом и одним выходом.
+    def flowSystem(in: Stream[IO, Int]): Stream[IO, Int] =
+      // конвертеры - Pipe
+      val f1: Pipe[IO, Int, Int] = _.map(_ + 10)
+      val f2, f3, f4 = f1
+      // слияние делается через очередь
+      val mergeS = Stream.eval(Queue.unbounded[IO, Option[Int]])
+      mergeS.flatMap {
+        merge =>
+          f1(in)
+            .broadcastTo(// broadcast - без отдельного компонента.
+              f2.andThen(_.noneTerminate.evalMap(merge.offer).drain),// noneTerminate - чтобы передать служебный сигнал окончания потока данных сквозь очередь.
+              f4.andThen(_.noneTerminate.evalMap(merge.offer).drain),
+            )
+            .merge(//здесь забираем данные из очереди
+              Stream.repeatEval(merge.take).unNoneTerminate // ловим сигнал завершения потока (None)
+            )
+            .through(f3)
+      }
+    // используем построенную систему
+    val res = Stream(1,2,3).through(flowSystem).compile.toList.unsafeRunSync()
+                  </code></pre>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                <p><b>Внутреннее устройство FS2</b></p>
+                <a href="https://fs2.io/">fs2.io</a>
+                <ul>
+                    <li>внешний DSL формирует FST - конечный автомат с выходом</li>
+                    <li class="fragment">этап конструирования (blueprint) отделён от этапа исполнения</li>
+                    <li class="fragment">Pull/Chunk - основной DSL внутреннего механизма</li>
+                    <li class="fragment">"алгебра" - набор атомарных команд, исполняемый интерпретатором fs2</li>
+                </ul>
+              </section>
+              <section style="text-align: left">
+                  <p><b>"Алгебры": лирическое отступление</b></p>
+                  <ul>
+                      <li>погружение обычных величин в "алгебру" F[T]</li>
+                      <li class="fragment">комбинирование средствами алгебры (map, flatMap, merge, etc.)</li>
+                      <li class="fragment">возврат из алгебры в обычное пространство</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <p><b>"Алгебры": IO</b></p>
+                  <ul>
+                      <li>IO[T] - вычисление, возвращающее величину T (или исключение)</li>
+                      <li class="fragment">комбинаторы позволяют сконструировать будущее вычисление</li>
+                      <li class="fragment">io.unsafeRunSync() - фактически запустить вычисление</li>
+                      <li class="fragment">преимущество - сохранение чистоты функций до последнего момента</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <p><b>"Алгебры": Stream</b></p>
+                  <ul>
+                      <li>Stream[IO, T] - абстрактный поток значений типа T, который может быть превращён в вычисление IO[List/Seq/Vector/...[T]]</li>
+                      <li class="fragment">комбинаторы позволяют сконструировать течение значений и их обработку</li>
+                      <li class="fragment">stream.compile.toVector - сформировать вычисление IO[Vector[T]]</li>
+                      <li class="fragment">преимущество - удобные комбинаторы, позволяющие конструировать
+                          сложные алгоритмы обработки</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <p><b>Пример take(n)</b></p>
+              </section>
+              <section style="text-align: left">
+                  <p><b>Пример асинхронной обработки через очередь</b></p>
+              </section>
+              <section style="text-align: left">
+                  <p><b>FS2: merge</b></p>
+                  <ul>
+                      <li>расщепление потоков для разных параллельных задач</li>
+                      <li class="fragment">как выполняется слияние?</li>
+                      <li class="fragment">потоки запускаются независимо и результат - в очередь</li>
+                  </ul>
+              </section>
+      </section>
+      <section>
+          <section>
+              <b>Домашнее задание</b>
+              <aside class="notes">
+                  <ul >
+                      <li>Оценка не выставляется. Это учебное задание. Вы представляете исходный код
+                          в репозитории github в виде PR. В качестве основы можно использовать https://github.com/Primetalk/scala-study.
+                          Я даю рецензию на код (код-ревью) и обращаю ваше внимание на то, что можно улучшить.
+                      </li>
+                      <li>После курса другие люди будут давать другие задачи для оценки.
+                          Так что в ваших интересах - решать самостоятельно и попытаться научиться.
+                          Рецензия позволит вам взглянуть на свой код со стороны.</li>
+                  </ul>
+              </aside>
+          </section>
+          <section>
+              <p>Вариант 1. wc, grep</p>
+              <ul>
+                  <li>Текст больше, чем размер памяти JVM</li>
+                  <li>Linux-команда wc - подсчитывает строки/слова/символы. Читает из std.in.
+                  </li>
+                  <li>Linux-команда grep - фильтрует строки, удовлетворяющие регулярному выражению.
+                  </li>
+              </ul>
+          </section>
+          <section>
+              <p>Вариант 1*. Вариация wc</p>
+              <ul>
+                  <li>средняя длина слова;</li>
+                  <li>количество артиклей a, the;</li>
+                  <li>доля слов, начинающихся с заглавной буквы;</li>
+                  <li>количество заметок в скобках (вложенные скобки не считать);</li>
+                  <li class="fragment">нарисовать картинку, описывающую структуру системы</li>
+              </ul>
+          </section>
+          <section>
+              <p>Вариант 2*. Управление потоком</p>
+              <ul>
+                  <li>
+                      Сделать один поток - генерацию текущих моментов времени через каждую секунду.(`.metered`)
+                  </li>
+                  <li>
+                      Сделать второй поток - чтения команд с консоли (on/off).
+                  </li>
+                  <li>
+                      Объединить эти потоки таким образом, что управляющий поток включает и выключает прохождение сигналов времени
+                  </li>
+                  <li>
+                      Результирующий поток вывести в консоль в формате времени чч:мм:сс
+                  </li>
+              </ul>
+          </section>
+          <section>
+              <p>Вариант 3**. Реализовать бота для приложения чата</p>
+              <a href="https://github.com/typelevel/fs2-chat/tree/master/src/main/scala/fs2chat/client">https://github.com/typelevel/fs2-chat/</a>
+              <ul>
+                  <li>Fork-нуть пример</li>
+                  <li>Кроме клиента/сервера, реализовать бота, который будет подключаться к серверу, слушать
+                      поток сообщений и при упоминании имени бота (например, Вася), выдавать сообщение.
+                  </li>
+              </ul>
+          </section>
+      </section>
+          <section>
+              <section>
+                  <b>Ссылки</b>
+                  <ul>
+                      <li><a href="https://fs2.io/index.html">https://fs2.io/index.html</a></li>
+                      <li><a href="https://github.com/typelevel/fs2">https://github.com/typelevel/fs2</a></li>
+                      <li><a href="http://blog.mikemccandless.com/2013/06/build-your-own-finite-state-transducer.html">http://blog.mikemccandless.com/2013/06/build-your-own-finite-state-transducer.html</a></li>
+                      <li><a href="https://tex.stackexchange.com/questions/254278/adding-finite-state-transducer-fst-in-xelatex">fst-example</a></li>
+                      <li><a href="https://github.com/Primetalk/SynapseGrid">https://github.com/Primetalk/SynapseGrid</a></li>
+                      <li><a href="https://doc.akka.io/docs/akka/current/stream/stream-graphs.html#working-with-graphs">Akka-Streams</a></li>
+                  </ul>
+              </section>
+            <section style="text-align: left">
+
+                <p><b>Спасибо за внимание</b></p>
+                <div class="fragment">
+                    <p></p>
+                  <b>Вопросы?</b>
+                  <p>
+                    <small>Арсений Александрович Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+                  </p>
+
+                </div>
+            </section>
+          </section>
+      </div>
+    </div>
+
+    <script src="reveal-js/lib/js/head.min.js"></script>
+    <script src="reveal-js/js/reveal.js"></script>
+
+    <script>
+      // More info https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+          { src: 'reveal-js/plugin/markdown/marked.js' },
+          { src: 'reveal-js/plugin/markdown/markdown.js' },
+          { src: 'reveal-js/plugin/notes/notes.js', async: true },
+          { src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+        ]
+      });
+    </script>
+  </body>
+</html>
