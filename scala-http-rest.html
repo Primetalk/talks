@@ -1,0 +1,515 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>REST-сервисы на Scala</title>
+
+    <link rel="stylesheet" href="reveal-js/css/reveal.css">
+    <link rel="stylesheet" href="reveal-js/css/theme/black.css">
+<!--    <link rel="stylesheet" href="reveal-js/css/theme/white.css">-->
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>REST-сервисы на Scala</h1>
+          <p>
+            <small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+          </p>
+          <aside class="notes">
+            <p>Сегодня мы рассмотрим реализацию REST-сервисов с использованием
+                фреймворков http4s, akka-http.</p>
+          </aside>
+
+        </section>
+<!--
+План:
+
+Ссылки:
+-->
+        <!--
+        -->
+          <section>
+            <section style="text-align: left">
+              <h3>План</h3>
+              <ul>
+                <li>Введение
+                    <ul>
+                        <li class="fragment">Что такое REST</li>
+                        <li class="fragment">Типичный REST сегодня</li>
+                    </ul>
+                </li>
+                <li class="fragment">Часть 1. Простой REST-сервис с использованием http4s</li>
+                <li class="fragment">Часть 2. Простой REST-сервис с использованием akka-http</li>
+                <li class="fragment">Часть 3. Клиент простого REST-сервиса</li>
+                <li class="fragment">Домашнее задание</li>
+              </ul>
+              <aside class="notes">
+                <p>
+                  На слайде - примерный план занятия.
+                    На этом занятии мы только лишь обозначим основные элементы.
+                    Рекомендуется прочитать дополнительную литературу.
+
+                </p>
+              </aside>
+            </section>
+            <section style="text-align: left">
+              <b>Введение. REST</b>
+              <ul>
+                  <li class="fragment">HTTP - простой (гипер-)текстовый протокол</li>
+                  <li class="fragment">Representational State Transfer</li>
+                  <li class="fragment">REST - "бессессионный" протокол</li>
+                  <li class="fragment">Сегодня REST использует JSON</li>
+                  <li class="fragment">сравним с другим популярным протоколом - RPC (remote procedure call)</li>
+              </ul>
+            </section>
+              <section style="text-align: left">
+              <b>Введение. REST vs RPC</b>
+                  <table>
+                      <thead>
+                          <tr>
+                              <th>REST</th>
+                              <th>RPC</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>вся информация в запросе</td>
+                              <td>вызовы формируют "контекст"</td>
+                          </tr>
+                          <tr>
+                              <td>URL -> сущность</td>
+                              <td>URL -> процедура</td>
+                          </tr>
+                          <tr>
+                              <td>HTTP Method = {GET, POST, DELETE, PUT}</td>
+                              <td>HTTP Method = GET?</td>
+                          </tr>
+                          <tr>
+                              <td>Дизайн основан на схеме</td>
+                              <td>Нет ограничений</td>
+                          </tr>
+                      </tbody>
+                  </table>
+            </section>
+            <section style="text-align: left">
+              <b>Введение. Современный REST = HTTP + JSON</b>
+              <p></p>
+              <ul>
+                <li class="fragment">вход/выход - application/json</li>
+                <li class="fragment">запросы - параметры URL (после ?)</li>
+                  <li class="fragment">универсальный формат, поддерживаемый всеми языками</li>
+                  <li class="fragment">текстовый формат, удобный для отладки</li>
+                  <li class="fragment">встроенная метаинформация</li>
+                <li class="fragment">поддержка потока данных - NDJSON</li>
+              </ul>
+                <aside class="notes">
+                    <p>К HTTP добавлен универсальный способ представления данных и получился REST
+                    </p>
+                </aside>
+            </section>
+          </section>
+          <section>
+            <section style="text-align: left">
+                <b>Часть 1. Простой REST на http4s</b>
+            </section>
+              <section style="text-align: left">
+                  <b>JSON: circe</b>
+                    <pre><code class="scala" data-trim>
+final case class TodoItem(text: String)
+                    </code></pre>
+                    <pre class="fragment"><code class="scala" data-trim>
+  given todoItemEncoder: Encoder[TodoItem] = new Encoder[TodoItem]:
+    final def apply(a: TodoItem): Json = Json.obj(
+      ("text", Json.fromString(a.text)),
+    )
+                    </code></pre>
+                    <pre class="fragment"><code class="scala" data-trim>
+  given todoItemDecoder: Decoder[TodoItem] = new Decoder[TodoItem]:
+    final def apply(c: HCursor): Decoder.Result[Thing] =
+      for
+        text <- c.downField("text").as[String]
+      yield
+        TodoItem(text)
+                    </code></pre>
+                    <aside class="notes">
+          <ol>
+              <li>данные представлены обычными case class'ами</li>
+              <li>кодирование в JSON</li>
+              <li>декодирование из JSON-а</li>
+          </ol>
+          </aside>
+              </section>
+              <section style="text-align: left">
+                  <b>Backend: хранение данных в памяти</b>
+                  <pre><code class="scala" data-trim>
+object Storage:
+  private var items: List[TodoItem] = List(TodoItem("Do work"))
+                    </code></pre>
+                    <pre class="fragment"><code class="scala" data-trim>
+  def list[F[_]](using Sync[F]): F[List[TodoItem]] =
+    items.pure
+                    </code></pre>
+                    <pre class="fragment"><code class="scala" data-trim>
+  def prepend[F[_]: Sync](item: TodoItem): F[Unit] = Sync[F].pure{
+    items = item :: items
+  }
+                    </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Routes: DSL</b>
+                  <pre><code class="scala" data-trim>
+  val dsl = Http4sDsl[F]
+  import dsl._
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+    HttpRoutes.of[F] {
+      case GET -> Root / "items" =>
+        for
+          items <- Storage.list[F]
+          resp <- Ok(items)
+        yield
+          resp
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+      case req @ POST -> Root /"item" =>
+        for
+          item <- req.as[TodoItem]
+          _ <- Storage.prepend(item)
+          resp <- Ok(item)
+        yield
+          resp
+    }
+                    </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Server: Blaze</b>
+                  <pre><code class="scala" data-trim>
+  val app = (
+    todoListRoutes <+>
+    todoListModifyRoutes
+    ).orNotFound
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  val server = BlazeServerBuilder[IO](global)
+    .bindHttp(8040)
+    .withHttpApp(app)
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+object TodoServer extends IOApp with TodoListRoutes[IO]:
+  def run(args: List[String]): IO[ExitCode] =
+    server.serve
+      .compile.drain
+      .as(ExitCode.Success)
+                    </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Config: <a href="https://habr.com/ru/company/primetalk/blog/447694/">компилируемая конфигурация</a></b>
+                  <pre><code class="scala" data-trim>
+trait AbstractConfig:
+  val port: Int
+  val baseUrl: String
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+trait Config extends AbstractConfig:
+  val port: Int = 8040
+  val baseUrl: String = s"http://localhost:$port"
+                    </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Проверка работы</b>
+                  <pre><code class="scala" data-trim>
+curl http://localhost:8040/items
+                  </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+curl -X POST http://localhost:8040/item -d '{"text": "Do more"}' --fail
+                    </code></pre>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>Часть 2. Простой REST на akka-http</b>
+              </section>
+              <section style="text-align: left">
+                  <b>JSON: spray</b>
+                  <pre><code class="scala" data-trim>
+final case class TodoItem(text: String)
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  implicit val todoItemJsonFormat: RootJsonFormat[TodoItem] = jsonFormat1(TodoItem(_))
+  implicit val todoItemsJsonFormat: RootJsonFormat[List[TodoItem]] = DefaultJsonProtocol.listFormat
+                    </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Backend: хранение данных внутри эктора</b>
+                  <pre><code class="scala" data-trim>
+object TodoItemRegistry:
+  // protocol
+  sealed trait Command
+  final case class GetTodoItems(replyTo: ActorRef[List[TodoItem]]) extends Command
+  final case class CreateTodoItem(item: TodoItem, replyTo: ActorRef[ActionPerformed]) extends Command
+  // responses
+  final case class ActionPerformed(description: String)
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  private def registry(items: Set[TodoItem]): Behavior[Command] =
+    Behaviors.receiveMessage {
+      case GetTodoItems(replyTo) =>
+        replyTo ! items.toList
+        Behaviors.same
+      case CreateTodoItem(item, replyTo) =>
+        replyTo ! ActionPerformed(s"TodoItem '${item.text}' created.")
+        registry(items + item)
+    }
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  def apply(): Behavior[Command] = registry(Set.empty)
+                    </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Routes: DSL</b>
+                  <pre><code class="scala" data-trim>
+class TodoItemsRoutes(itemsRegistry: ActorRef[TodoItemRegistry.Command])(implicit val system: ActorSystem[_]):
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  def getItems(): Future[List[TodoItem]] =
+    itemsRegistry.ask(GetTodoItems(_))
+  def createItem(item: TodoItem): Future[ActionPerformed] =
+    itemsRegistry.ask(CreateTodoItem(item, _))
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  val itemsRoutes: Route =
+    concat(
+      pathPrefix("items") {
+        pathEnd {
+          get {
+            complete(StatusCodes.OK, getItems().value.get)
+          }
+        }
+      },
+      pathPrefix("item") {
+        pathEnd {
+          post {
+            entity(as[TodoItem]) { item =>
+              onSuccess(createItem(item)) { performed =>
+                complete(StatusCodes.Created, performed)
+              }
+            }
+          }
+        }
+      }
+    )
+                    </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Server: Http поверх ActorSystem</b>
+                  <pre><code class="scala" data-trim>
+  private def startHttpServer(routes: Route)(implicit system: ActorSystem[_]): Unit = {
+    val futureBinding = Http().newServerAt("localhost", 8040).bind(routes)
+    Await.ready(futureBinding, 10.millis)
+  }
+                  </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  def main(args: Array[String]): Unit =
+    val rootBehavior = Behaviors.setup[Nothing] { context =>
+      val itemsRegistryActor = context.spawn(TodoItemRegistry(), "TodoListRegistryActor")
+      context.watch(itemsRegistryActor)
+                  </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+      val routes = new TodoItemsRoutes(itemsRegistryActor)(context.system)
+      startHttpServer(routes.itemsRoutes)(context.system)
+                  </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+      Behaviors.empty
+    }
+    val system = ActorSystem[Nothing](rootBehavior, "TodoListAkkaHttpServer")
+                      </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Config: HOCON</b>
+                  <pre><code class="scala" data-trim>
+my-app {
+  routes {
+    # If ask takes more time than this to complete the request is failed
+    ask-timeout = 5s
+  }
+}
+                  </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  // If ask takes more time than this to complete the request is failed
+  private implicit val timeout: Timeout = Timeout.create(system.settings.config.getDuration("my-app.routes.ask-timeout"))
+                  </code></pre>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>Часть 3. Клиент на http4s</b>
+                  <pre><code class="scala" data-trim>
+object TodoClient extends IOApp with Config:
+  def run(args: List[String]): IO[ExitCode] =
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+    BlazeClientBuilder[IO](global).resource.use { client =>
+      val item = TodoItem("Do some other work")
+      val itemApi = Uri.fromString(baseUrl + "/item").getOrElse(???)
+      val postTodoItem = POST(item, itemApi)
+                    </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+      for
+        status <- client.status(postTodoItem)
+        _ <- IO{println(s"Post status: $status")}
+        items <- client.expect[List[TodoItem]](baseUrl+"/items")
+        _ <- IO{ assert(items.exists(_.text.contains("other"))) }
+      yield
+        ExitCode.Success
+    }
+                  </code></pre>
+                  <aside class="notes">
+                      <p>IOApp - позволяет запускать приложения, построенные как IO</p>
+                      <p>Работа с JSON'ом - имплисит на имлисите</p>
+                      <p>Поддержка потоков, в т.ч. бесконечных</p>
+                      <p>HTTP-Запросы - POST, GET</p>
+                  </aside>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>Часть 4. Тестирование (akka-http)</b>
+              </section>
+              <section style="text-align: left">
+                  <b>TestKit</b>
+                  <pre><code class="scala" data-trim>
+  lazy val testKit = ActorTestKit()
+
+  implicit def typedSystem: ActorSystem[Nothing] = testKit.system
+
+  override def createActorSystem(): akka.actor.ActorSystem =
+    testKit.system.classicSystem
+                  </code></pre>
+                  <pre class="fragment"><code class="scala" data-trim>
+  test("TodoListServer"){
+    val todoItemRegistry = testKit.spawn(TodoItemRegistry())
+    lazy val routes = new TodoItemsRoutes(todoItemRegistry).itemsRoutes
+    import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+    import JsonFormats._
+    val request = HttpRequest(uri = "/items")
+    request ~> routes ~> check {
+      status should === (StatusCodes.OK)
+      // we expect the response to be json:
+      contentType should === (ContentTypes.`application/json`)
+      // and no entries should be in the list:
+      entityAs[String] should === ("""[{"text":"Do work"}]""")
+    }
+  }
+                  </code></pre>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                <p><b>Заключение</b></p>
+                <ul>
+                    <li>REST - широко используемый протокол</li>
+                    <li class="fragment">есть несколько библиотек/фреймворков - http4s, akka-http, и др.</li>
+                    <li class="fragment">реализация: пути, сериализация/парсинг</li>
+                    <li class="fragment">тестирование: роутер, без сетевого стека</li>
+                </ul>
+              </section>
+      </section>
+      <section>
+          <section>
+              <b>Домашнее задание</b>
+              <aside class="notes">
+                  <ul >
+                      <li>Оценка не выставляется. Это учебное задание. Вы представляете исходный код
+                          в репозитории github в виде PR. В качестве основы можно использовать https://github.com/Primetalk/scala-study.
+                          Я даю рецензию на код (код-ревью) и обращаю ваше внимание на то, что можно улучшить.
+                      </li>
+                      <li>После курса другие люди будут давать другие задачи для оценки.
+                          Так что в ваших интересах - решать самостоятельно и попытаться научиться.
+                          Рецензия позволит вам взглянуть на свой код со стороны.</li>
+                  </ul>
+              </aside>
+          </section>
+          <section>
+              <p>Вариант 1. Простой Web-сервер</p>
+              <ul>
+                  <li>Отдаёт text/html из папки</li>
+                  <li>Можно добавить возможность публикации html-файлов</li>
+                  <li>http4s/akka-http</li>
+              </ul>
+          </section>
+          <section>
+              <p>Вариант 2. TODO-List</p>
+              <ul>
+                  <li>Продумать/придумать варианты использования</li>
+                  <li>редактирование</li>
+                  <li>переупорядочение</li>
+                  <li>статус - готово/нет, (/отменено/переадресовано)</li>
+                  <li>именованные списки</li>
+              </ul>
+          </section>
+          <section>
+              <p>Вариант 3*. Загрузка/скачивание больших файлов</p>
+              <ul>
+                  <li>использовать fs2/akka-streams</li>
+                  <li>ftp-протокол?</li>
+              </ul>
+          </section>
+      </section>
+          <section>
+              <section>
+                  <b>Ссылки</b>
+                  <ul>
+                      <li><a href="https://cloud.google.com/blog/products/application-development/rest-vs-rpc-what-problems-are-you-trying-to-solve-with-your-apis">https://cloud.google.com/blog/products/application-development/rest-vs-rpc-what-problems-are-you-trying-to-solve-with-your-apis</a></li>
+                      <li><a href="https://habr.com/ru/company/primetalk/blog/447694/">https://habr.com/ru/company/primetalk/blog/447694/</a></li>
+                  </ul>
+              </section>
+            <section style="text-align: left">
+
+                <p><b>Спасибо за внимание</b></p>
+                <div class="fragment">
+                    <p></p>
+                  <b>Вопросы?</b>
+                  <p>
+                    <small>Арсений Александрович Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+                  </p>
+
+                </div>
+            </section>
+          </section>
+      </div>
+    </div>
+
+    <script src="reveal-js/lib/js/head.min.js"></script>
+    <script src="reveal-js/js/reveal.js"></script>
+
+    <script>
+      // More info https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+          { src: 'reveal-js/plugin/markdown/marked.js' },
+          { src: 'reveal-js/plugin/markdown/markdown.js' },
+          { src: 'reveal-js/plugin/notes/notes.js', async: true },
+          { src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+        ]
+      });
+    </script>
+  </body>
+</html>
