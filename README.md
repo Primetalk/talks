@@ -18,9 +18,9 @@
 ### Posts
 
 - 2021 Системы сборки
-  - 2021-04-05 [Building projects (CI/CD), instruments](https://habr.com/ru/post/550548/) [Сборка не JVM-проектов, инструменты](https://habr.com/ru/post/550658/)
-  - 2021-04-05 [Build (CI/CD) of non-JVM projects using gradle/kotlin](https://habr.com/ru/post/550656/) [Сборка (CI/CD) не-JVM проектов с использованием gradle/kotlin](https://habr.com/ru/post/550654/)
-- 2019 [Compilable configuration of a distributed system](https://habr.com/ru/company/primetalk/blog/447690/) [Компилируемая конфигурация распределённой системы](https://habr.com/ru/company/primetalk/blog/447694/) ([Draft](https://github.com/Primetalk/talks/blob/master/config/compilable-config.md) [Черновик](https://github.com/Primetalk/talks/blob/master/config/compilable-config-ru.md))
+  - 2021-04-05 [Building projects (CI/CD), instruments](https://habr.com/en/post/550548/) [Сборка не JVM-проектов, инструменты](https://habr.com/ru/post/550658/)
+  - 2021-04-05 [Build (CI/CD) of non-JVM projects using gradle/kotlin](https://habr.com/en/post/550656/) [Сборка (CI/CD) не-JVM проектов с использованием gradle/kotlin](https://habr.com/ru/post/550654/)
+- 2019 [Compilable configuration of a distributed system](https://habr.com/en/company/primetalk/blog/447690/) [Компилируемая конфигурация распределённой системы](https://habr.com/ru/company/primetalk/blog/447694/) ([Draft](https://github.com/Primetalk/talks/blob/master/config/compilable-config.md) [Черновик](https://github.com/Primetalk/talks/blob/master/config/compilable-config-ru.md))
 - 2018 [Dealing with software complexity](https://www.linkedin.com/pulse/dealing-software-complexity-%D0%B0%D1%80%D1%81%D0%B5%D0%BD%D0%B8%D0%B9-%D0%B6%D0%B8%D0%B6%D0%B5%D0%BB%D0%B5%D0%B2/) @ Linked-In
 - 2018 [Тестирование белого ящика (white box testing)](https://habr.com/post/422283/)
 - 2017 [Классы типов в Scala (с небольшим обзором библиотеки cats)](https://habr.com/ru/post/318960/)
