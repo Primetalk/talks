@@ -10,6 +10,8 @@ In this note we will take look at the criteria by which we chose the toolkit, an
 
 [![CI/CD (opensource.com)](https://opensource.com/sites/default/files/uploads/devops_pipeline_pipe-2.png)](https://opensource.com/article/19/7/cicd-pipeline-rule-them-all)
 
+<cut/>
+
 ## General model of project assembly
 
 Project build model in all considered tools is a ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)), and not a structural approach (when a procedure calls other procedures and then uses the results). This is due to the fact that during the development of the project, frequently minor changes are made and most no assembly operations required. That is, the organization of the project in the form of a digraph is the basis for performing only those actions which are necessary for the immediate task, thereby frequently used operations will execute promptly.
@@ -31,8 +33,6 @@ For a new integration project we decided to try to find an alternative build too
 - sbt,
 - gradle/groovy,
 - gradle/kotlin.
-
-<cut/>
 
 ### Make
 
