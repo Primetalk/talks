@@ -1,0 +1,461 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Gradle: сборка не-JVM проектов</title>
+
+    <link rel="stylesheet" href="reveal-js/css/reveal.css">
+    <link rel="stylesheet" href="reveal-js/css/theme/black.css">
+<!--    <link rel="stylesheet" href="reveal-js/css/theme/white.css">-->
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>Gradle: сборка не-JVM проектов</h1>
+          <p>
+            <small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк, IT-highlight</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+          </p>
+          <aside class="notes">
+            <p>Сегодня мы рассмотрим некоторые особенности сборки проектов с помощью Gradle.</p>
+          </aside>
+
+        </section>
+<!--
+План:
+
+Ссылки:
+-->
+        <!--
+        -->
+          <section>
+            <section style="text-align: left">
+              <h3>План</h3>
+              <ul>
+                <li>Введение
+                    <ul>
+                        <li class="fragment">общая структура сборки - DAG</li>
+                        <li class="fragment">преимущества gradle/kotlin</li>
+                        <li class="fragment">модели - задачи, проекты/плагины, зависимые свойства</li>
+                    </ul>
+                </li>
+                  <li class="fragment">1. Пример плагина
+                  </li>
+                  <li class="fragment">2. Пример DSL
+                  </li>
+                  <li class="fragment">3. Подмодули git для организации многомодульного проекта
+                  </li>
+                  <li class="fragment">4. Tips&tricks
+                  </li>
+                  <li class="fragment">Заключение
+                  </li>
+              </ul>
+            </section>
+              <section style="text-align: left">
+                  <b>Введение. Общая структура сборки</b>
+                  <img src="https://docs.gradle.org/current/userguide/img/task-dag-examples.png"  alt="arbitrary graph of tasks"/>
+              </section>
+              <section style="text-align: left">
+                  <b>Введение. Общая структура сборки</b>
+                  <ul>
+                      <li class="fragment">как и в других системах сборки — ориентированный граф задач/целей</li>
+                      <li class="fragment">узлы графа — цели/задачи</li>
+                      <li class="fragment">задача — последовательность действий, метаинформация, описание входов/выходов</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+              <b>Введение. Преимущества Gradle/Kotlin</b>
+              <ul>
+                <li class="fragment">скорость (типичный цикл - секунды)</li>
+                <li class="fragment">компилируемый язык скриптов и плагинов</li>
+                <li class="fragment">JVM экосистема с библиотеками на все случаи жизни</li>
+                <li class="fragment">развитый DSL</li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <b>Введение. Модели</b>
+              <p></p>
+              <ul>
+                <li class="fragment">обычная модель — граф задач</li>
+                <li class="fragment">более высокоуровневая модель — проект (часть исходного кода), плагин (набор связанных задач и конфигураций)</li>
+                  <li class="fragment">свойства и зависимости между свойствами</li>
+              </ul>
+            </section>
+              <section style="text-align: left">
+                  <b>Введение. Фазы работы gradle</b>
+                  <p></p>
+                  <ul>
+                      <li class="fragment"><b>инициализация</b> (settings) — поиск всех проектов</li>
+                      <li class="fragment"><b>конфигурация</b> — исполнение build.gradle.kts требуемых проектов</li>
+                      <li class="fragment"><b>исполнение</b> — собственно код внутри задач в порядке, заданном зависимостями</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>Введение. императивный vs декларативный</b>
+                  <p></p>
+                  <ul>
+                      <li class="fragment">императивный скрипт - последовательность действий</li>
+                      <li class="fragment">преимущества императивного подхода:
+                          <ul>
+                              <li>легко реализовывать</li>
+                              <li>гибкость</li>
+                          </ul>
+                      </li>
+                      <li class="fragment">модель проекта - декларативная</li>
+                      <li class="fragment">преимущества декларативного подхода:
+                          <ul>
+                              <li>легко использовать</li>
+                              <li>понятность декларативного описания</li>
+                              <li>поддерживаемость</li>
+                              <li>защита от ошибок</li>
+                          </ul>
+                      </li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>Введение. buildSrc</b>
+                  <p></p>
+                  <ul>
+                      <li class="fragment">нормальный JVM-проект — классы, функции, структуры данных, ...</li>
+                      <li class="fragment">zero configuration</li>
+                      <li class="fragment">весь императивный код из скриптов надо переносить либо в buildSrc, либо в другие included build, либо ещё дальше</li>
+                      <li class="fragment">внутри скриптов сборки - только декларации</li>
+                  </ul>
+              </section>
+          </section>
+          <section>
+          </section>
+          <section>
+        <section style="text-align: left">
+          <b>1.1. Пример плагина</b>
+            <pre class="fragment"><code class="kotlin" data-trim>
+class GreetingPlugin : Plugin⟨Project⟩; {
+    override fun apply(target: Project) {
+        target.task("hello") {
+            doLast {
+                println("Hello, World.")
+            }
+        }
+    }
+}
+          </code></pre>
+            <pre class="fragment"><code class="kotlin" data-trim>
+apply⟨GreetingPlugin⟩()
+          </code></pre>
+        </section>
+              <section style="text-align: left">
+                  <b>1.2. Пример плагина (с конфигурацией)</b>
+                  <pre><code class="kotlin" data-trim>
+open class GreetingPluginExtension {
+    var message = "Hello from GreetingPlugin"
+}
+          </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+    override fun apply(target: Project) {
+        val greeting = target.extensions.create⟨GreetingPluginExtension⟩("greeting")
+        // Теперь в коде можно использовать значение свойства. Только на этапе исполнения!
+        target.task("hello") {
+            doLast {
+                println(greeting.message)
+          </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+apply⟨GreetingPlugin⟩()
+
+// Внимание! Конфигурация делается после применения плагина!
+the⟨GreetingPluginExtension⟩().message = "Hi from Gradle"
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>1.3.1. Пример плагина (свойства)</b>
+                  <pre><code class="kotlin" data-trim>
+open class MyPluginExtension(objects: ObjectFactory) {
+  val name: Property⟨String⟩ = objects.property(String::class.java)
+  val message: Property⟨String⟩ = objects.property(String::class.java)
+  init {
+      name.convention("World")
+      message.convention(name.map{"Hello " + it})
+  }
+}
+</code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>1.3.2. Пример плагина (свойства)</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class MyPlugin: Plugin⟨Project⟩ {
+    override fun apply(target: Project) {
+        val ext = target.extensions.create("helloExt", MyPluginExtension::class.java)
+        target.tasks.register("hello-name"){
+            it.doLast{
+                println(ext.message.get())
+            }
+        }
+    }
+}
+          </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+apply⟨MyPlugin⟩()
+configure⟨MyPluginExtension⟩{
+  message.set("Hi from Gradle")
+}
+          </code></pre>
+              </section>          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>2. Пример DSL (kosogor)</b>
+                  <ul>
+                      <li class="fragment">плагин для работы с terraform-проектами</li>
+                      <li class="fragment">поддерживает несколько папок</li>
+                      <li class="fragment">не поддерживает инкрементную сборку</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>2.1 Подключение своего DSL</b>
+                  <pre><code class="kotlin" data-trim>
+class TerraformDsl(var project: Project? = null) {
+    internal val config = Config()
+
+    @TerraformDSLTag
+    fun config(configure: Config.() -> Unit) { configure(config) }
+    fun root()...
+}
+internal val terraformDsl = TerraformDsl()
+
+fun Project.terraform(configure: TerraformDsl.() -> Unit) {
+    terraformDsl.project = this
+    terraformDsl.configure()
+}
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>2.2 Использование DSL</b>
+                  <pre><code class="kotlin" data-trim>
+terraform {  // вызов метода-расширения; аргумент - лямбда
+    config { // снова вызов метода; снова аргумент - лямбда
+        tfVersion = "0.11.11"
+    }
+    root(    // вызов метода, обычные аргументы
+      "example", File(projectDir, "terraform"))
+}
+          </code></pre>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>3. Модули Git</b>
+                  <ul>
+                      <li class="fragment">интегрируем несколько проектов,
+                          чтобы управлять ими как целым</li>
+                      <li class="fragment">разработка feature - на интеграционном уровне</li>
+                      <li class="fragment">общий скрипт автоматизации</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>3. Модули Git. Команды</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+pushd top-level
+git submodule init
+git submodule add -b develop git@github.com:/Primetalk/rewritable-tree.git
+git submodule add git@github.com:/Primetalk/rewritable-tree.git
+          </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+git clone --recurse-submodules git@github.com:/Primetalk/top-level.git
+git submodule update --remote
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>3. Модули Git. Особенности</b>
+                  <ul>
+                      <li class="fragment">каждый модуль указывает на коммит.
+                          При обновлении надо не забывать обновлять подмодули
+                          (<pre>git submodule update --remote</pre>)</li>
+                      <li class="fragment">обновление модулей ==> обновление главного репозитория</li>
+                      <li class="fragment"><a href="https://www.vogella.com/tutorials/GitSubmodules/article.html">удаление вручную</a>
+                          <pre class="fragment"><code class="kotlin" data-trim>
+git submodule deinit -f -- mymodule
+git rm -f mymodule
+rm -rf .git/modules/mymodule
+                      </code></pre>
+                      </li>
+                      <li class="fragment">VSCode - неплохо работает с подмодулями</li>
+                  </ul>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>4. Tips&tricks</b>
+                  <ul>
+                      <li>идеальный инкрементный билд - повторный вызов команды завершается за доли секунд </li>
+                      <li class="fragment">файлы-сигналы между задачами</li>
+                      <li class="fragment">императивный скрипт - зло</li>
+                      <li class="fragment">зависимости между задачами выводятся из зависимостей свойств</li>
+                      <li class="fragment">пример перезапуска локального сервиса</li>
+                      <li class="fragment">централизованная конфигурация</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>4.1.1 Вывод зависимостей между задачами из формул свойств</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class TaskA: DefaultTask() {
+    @OutputFile
+    val result = project.objects.fileProperty()
+    init {
+        result.convention(project.buildDir.file("result.txt"))
+    }
+}
+          </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class TaskB: DefaultTask() {
+    @InputFile
+    val input = project.objects.fileProperty()
+
+    @Action
+    fun taskB() {
+        println(input.get().asFile.absolutePath)
+    }
+}
+          </code></pre>
+
+              </section>
+              <section style="text-align: left">
+                  <b>4.1.2 Вывод зависимостей между задачами из формул свойств</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+val taskA = tasks.register⟨TaskA⟩("taskA") {
+    output.set(file("other.txt"))
+}
+tasks.register⟨TaskB⟩("taskB") {
+    input.set(taskA.result)
+}
+          </code></pre>
+<p class="fragment">Задача taskB зависит от taskA</p>
+              </section>
+              <section style="text-align: left">
+                  <b>4.2.1 Перезапуск локального сервиса</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class BuildNative(objects: ObjectFactory): DefaultTask() {
+    @OutputFile
+    val nativeBinary: FileProperty = objects.fileProperty()
+    init {
+        nativeBinary.convention("binary")
+    }
+    @TaskAction
+    fun build() {
+        // ...
+    }
+}
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>4.2.2 Перезапуск локального сервиса</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+open class StartService(objects: ObjectFactory): DefaultTask() {
+    @InputFile
+    val nativeBinary: FileProperty = objects.fileProperty()
+    @OutputFile
+    val pidFile: FileProperty = objects.fileProperty()
+    init {
+        nativeBinary.convention("binary")
+        pidFile.convention("binary.pid")
+    }
+    @TaskAction
+    fun start() {
+        pidFile.get().asFile.writeText(
+                Process(nativeBinary.get().asFile.absolutePath).start()
+        )// несколько упрощённо
+    }
+}
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>4.2.3 Перезапуск локального сервиса</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class ServiceStarted(objects: ObjectFactory): StartService(objects) {
+    @TaskAction
+    fun restartIfNeeded() {
+        if(pidFile.get().asFile.exists()) {
+            kill(pidFile.get().asFile.readText())
+        }
+        start()
+    }
+}
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>4.3 Централизованные порты</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+// в buildSrc
+data class ServiceAConfig(val port: Int, val path: String) {
+    fun localUrl(): URL = URL("http://localhost:$port/$path")
+}
+                  </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+// в главном скрипте ./build.gradle.kts
+val serviceAConfig: ServiceAConfig by extra(ServiceAConfig(8080, "serviceA/test"))
+                  </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+// в подпроектах
+val serviceAConfig: ServiceAConfig by rootProject.extra
+                  </code></pre>
+              </section>
+          </section>
+
+          <section>
+              <section>
+                  <b>Заключение</b>
+                  <p></p>
+                  <ul>
+                      <li>gradle позволяет собирать не JVM проекты</li>
+                      <li class="fragment">преимущества: язык со статической типизацией и скорость работы</li>
+                      <li class="fragment">декларативность - следует стремиться</li>
+                      <li class="fragment">императивный подход поддерживается - гибкость</li>
+                      <li class="fragment">ленивое исполнение - только то, что необходимо</li>
+                  </ul>
+              </section>
+            <section style="text-align: left">
+
+                <p><b>Спасибо за внимание</b></p>
+                <div class="fragment">
+                    <p></p>
+                  <b>Вопросы?</b>
+                  <p>
+                    <small>Арсений Александрович Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+                  </p>
+
+                </div>
+            </section>
+          </section>
+      </div>
+    </div>
+
+    <script src="reveal-js/lib/js/head.min.js"></script>
+    <script src="reveal-js/js/reveal.js"></script>
+
+    <script>
+      // More info https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+          { src: 'reveal-js/plugin/markdown/marked.js' },
+          { src: 'reveal-js/plugin/markdown/markdown.js' },
+          { src: 'reveal-js/plugin/notes/notes.js', async: true },
+          { src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+        ]
+      });
+    </script>
+  </body>
+</html>
