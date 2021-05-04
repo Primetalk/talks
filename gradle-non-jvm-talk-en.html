@@ -1,0 +1,353 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Gradle: building non-JVM projects</title>
+
+    <link rel="stylesheet" href="reveal-js/css/reveal.css">
+    <link rel="stylesheet" href="reveal-js/css/theme/black.css">
+<!--    <link rel="stylesheet" href="reveal-js/css/theme/white.css">-->
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+      var link = document.createElement( 'link' );
+      link.rel = 'stylesheet';
+      link.type = 'text/css';
+      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
+      document.getElementsByTagName( 'head' )[0].appendChild( link );
+    </script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>Gradle: building non-JVM projects</h1>
+          <p>
+            <small>Arseniy Zhizhelev / <a href="mailto:arseniy.zhizhelev@rialtic.io">arseniy.zhizhelev@rialtic.io</a></small>
+          </p>
+        </section>
+          <section>
+            <section style="text-align: left">
+              <h3>Plan</h3>
+              <ul>
+                <li>Intro
+                    <ul>
+                        <li class="fragment">overall structure of build - DAG</li>
+                        <li class="fragment">advantages of gradle/kotlin</li>
+                        <li class="fragment">models - task graph, projects/plugins, properties/providers/dependencies</li>
+                    </ul>
+                </li>
+                  <li class="fragment">1. Golang plugin
+                  </li>
+                  <li class="fragment">2. Terraform DSL
+                  </li>
+                  <li class="fragment">3. git submodules
+                  </li>
+                  <li class="fragment">4. Tips&tricks
+                  </li>
+                  <li class="fragment">Conclusion
+                  </li>
+              </ul>
+            </section>
+              <section style="text-align: left">
+                  <b>Introduction. Overall build structure</b>
+                  <img src="https://docs.gradle.org/current/userguide/img/task-dag-examples.png"  alt="arbitrary graph of tasks"/>
+              </section>
+              <section style="text-align: left">
+                  <b>Introduction. Overall build structure</b>
+                  <ul>
+                      <li class="fragment">likewise in other build systems - directed graph of tasks/goals</li>
+                      <li class="fragment">nodes - tasks/targets/goals</li>
+                      <li class="fragment">task — sequence of actions, metainfo, inputs/outputs</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+              <b>Introduction. Advantages of Gradle/Kotlin</b>
+              <ul>
+                <li class="fragment">performance (typical roundtrip - seconds)</li>
+                <li class="fragment">statically typed language of scripts and plugins</li>
+                <li class="fragment">JVM ecosystem with plenty of libraries</li>
+                <li class="fragment">advanced and convenient DSL</li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <b>Introduction. Models</b>
+              <p></p>
+              <ul>
+                <li class="fragment">ordinary model - task graph</li>
+                <li class="fragment">higher level — project (source code), plugin (collection of connected tasks and configurations)</li>
+                <li class="fragment">properties with dependencies</li>
+              </ul>
+            </section>
+              <section style="text-align: left">
+                  <b>Introduction. gradle phases</b>
+                  <p></p>
+                  <ul>
+                      <li class="fragment"><b>initialization</b> (settings.gradle.kts) — identification of all projects</li>
+                      <li class="fragment"><b>configuration</b> — running build.gradle.kts of required projects</li>
+                      <li class="fragment"><b>execution</b> — task actions are being executed in topological order</li>
+                      <li class="fragment">See example in settings.gradle.kts</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>Introduction. Imperative vs declarative styles</b>
+                  <p></p>
+                  <ul>
+                      <li class="fragment">imperative script - sequence of actions</li>
+                      <li class="fragment">imperative script advantages:
+                          <ul>
+                              <li>easy to implement</li>
+                              <li>flexibility</li>
+                          </ul>
+                      </li>
+                      <li class="fragment">project model is declarative</li>
+                      <li class="fragment">declarative script advantages:
+                          <ul>
+                              <li>easy to use</li>
+                              <li>clearness of declarative description</li>
+                              <li>maintainability</li>
+                              <li>error protection</li>
+                          </ul>
+                      </li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>Introduction. buildSrc</b>
+                  <p></p>
+                  <ul>
+                      <li class="fragment">ordinary JVM-project — classes, functions, data structures, ...</li>
+                      <li class="fragment">zero configuration</li>
+                      <li class="fragment">all imperative code from scripts should be moved to buildSrc, or to other included build, or even further</li>
+                      <li class="fragment">only declarations should be inside build scripts</li>
+                  </ul>
+              </section>
+          </section>
+          <section>
+            <section style="text-align: left">
+              <b>1. Example - Greeting Plugin</b>
+                <a href="https://docs.gradle.org/current/userguide/custom_plugins.html#sec:writing_a_simple_plugin">Greeting Plugin</a>
+            </section>
+              <section style="text-align: left">
+                  <b>2. Example - golang plugin</b>
+              </section>
+              <section style="text-align: left">
+                  <b>3. Service plugin</b>
+              </section>
+              <section style="text-align: left">
+                  <b>4. NodeJS projects - usage of plugins</b>
+              </section>
+              <section style="text-align: left">
+                  <b>5. Centralized configuration</b>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>Git submodules</b>
+                  <ul>
+                      <li class="fragment">integration of a few projects
+                          to manage them altogether</li>
+                      <li class="fragment">feature development - at the level of integration project</li>
+                      <li class="fragment">combined automation script</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>Git submodules. Some commands</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+pushd top-level
+git submodule init
+git submodule add -b develop git@github.com:/Primetalk/rewritable-tree.git
+git submodule add git@github.com:/Primetalk/rewritable-tree.git
+          </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+git clone --recurse-submodules git@github.com:/Primetalk/top-level.git
+git submodule update --remote
+          </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>Git submodules. Nuances</b>
+                  <ul>
+                      <li class="fragment">each module points to a commit.
+                          Don't forget to refresh submodules
+                          (<pre>git submodule update --remote</pre>)</li>
+                      <li class="fragment">after submodule update ==> need PR to top level repo</li>
+                      <li class="fragment"><a href="https://www.vogella.com/tutorials/GitSubmodules/article.html">manual removal of submodules</a>
+                          <pre class="fragment"><code class="kotlin" data-trim>
+git submodule deinit -f -- mymodule
+git rm -f mymodule
+rm -rf .git/modules/mymodule
+                      </code></pre>
+                      </li>
+                      <li class="fragment">VSCode - works well with submodules</li>
+                  </ul>
+              </section>
+          </section>
+          <section>
+              <section style="text-align: left">
+                  <b>4. Tips&tricks</b>
+                  <ul>
+                      <li>Ideal incremental build - calling the same command once again terminates within seconds</li>
+                      <li class="fragment">files could be used as signals between cloud tasks</li>
+                      <li class="fragment">imperative script is difficult to maintain. Good - declarative configuration</li>
+                      <li class="fragment">task dependencies could be inferred from property dependencies (recently got to know)</li>
+                      <li class="fragment">local service restart</li>
+                      <li class="fragment">centralized configuration</li>
+                  </ul>
+              </section>
+              <section style="text-align: left">
+                  <b>4.1.1 Infer task dependencies from properties</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class TaskA: DefaultTask() {
+    @OutputFile
+    val result = project.objects.fileProperty()
+    init {
+        result.convention(project.buildDir.file("result.txt"))
+    }
+}
+          </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class TaskB: DefaultTask() {
+    @InputFile
+    val input = project.objects.fileProperty()
+
+    @Action
+    fun taskB() {
+        println(input.get().asFile.absolutePath)
+    }
+}
+          </code></pre>
+
+              </section>
+              <section style="text-align: left">
+                  <b>4.1.2 Infer task dependencies from properties</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+val taskA = tasks.register⟨TaskA⟩("taskA") {
+    output.set(file("other.txt"))
+}
+tasks.register⟨TaskB⟩("taskB") {
+    input.set(taskA.result)
+}
+          </code></pre>
+<p class="fragment">taskB depends on taskA</p>
+              </section>
+              <section style="text-align: left">
+                  <b>4.2.1 Local service restart</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class BuildNative(objects: ObjectFactory): DefaultTask() {
+    @OutputFile
+    val nativeBinary: FileProperty = objects.fileProperty()
+    init {
+        nativeBinary.convention("binary")
+    }
+    @TaskAction
+    fun build() {
+        // ...
+    }
+}
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>4.2.2 Local service restart</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+open class StartService(objects: ObjectFactory): DefaultTask() {
+    @InputFile
+    val nativeBinary: FileProperty = objects.fileProperty()
+    @OutputFile
+    val pidFile: FileProperty = objects.fileProperty()
+    init {
+        nativeBinary.convention("binary")
+        pidFile.convention("binary.pid")
+    }
+    @TaskAction
+    fun start() {
+        pidFile.get().asFile.writeText(
+                Process(nativeBinary.get().asFile.absolutePath).start()
+        )// simplified
+    }
+}
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>4.2.3 Local service restart</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+class ServiceStarted(objects: ObjectFactory): StartService(objects) {
+    @TaskAction
+    fun restartIfNeeded() {
+        if(pidFile.get().asFile.exists()) {
+            kill(pidFile.get().asFile.readText())
+        }
+        start()
+    }
+}
+                  </code></pre>
+              </section>
+              <section style="text-align: left">
+                  <b>4.3 Centralized ports</b>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+// in buildSrc
+data class ServiceAConfig(val port: Int, val path: String) {
+    fun localUrl(): URL = URL("http://localhost:$port/$path")
+}
+                  </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+// in main script ./build.gradle.kts
+val serviceAConfig: ServiceAConfig by extra(ServiceAConfig(8080, "serviceA/test"))
+                  </code></pre>
+                  <pre class="fragment"><code class="kotlin" data-trim>
+// subprojects
+val serviceAConfig: ServiceAConfig by rootProject.extra
+                  </code></pre>
+              </section>
+          </section>
+
+          <section>
+              <section>
+                  <b>Conclusion</b>
+                  <p></p>
+                  <ul>
+                      <li>gradle allows building non JVM projects</li>
+                      <li class="fragment">advantages: strongly statically typed language and performance</li>
+                      <li class="fragment">declarative - is good. Should move towards</li>
+                      <li class="fragment">imperative - flexible</li>
+                      <li class="fragment">lazy evaluation - super fast</li>
+                  </ul>
+              </section>
+            <section style="text-align: left">
+
+                <p><b>Thank you</b></p>
+                <div class="fragment">
+                    <p></p>
+                  <b>Questions?</b>
+                  <p>
+                      <small>Arseniy Zhizhelev / <a href="mailto:arseniy.zhizhelev@rialtic.io">arseniy.zhizhelev@rialtic.io</a></small>
+                  </p>
+
+                </div>
+            </section>
+          </section>
+      </div>
+    </div>
+
+    <script src="reveal-js/lib/js/head.min.js"></script>
+    <script src="reveal-js/js/reveal.js"></script>
+
+    <script>
+      // More info https://github.com/hakimel/reveal.js#configuration
+      Reveal.initialize({
+        history: true,
+
+        // More info https://github.com/hakimel/reveal.js#dependencies
+        dependencies: [
+          { src: 'reveal-js/plugin/markdown/marked.js' },
+          { src: 'reveal-js/plugin/markdown/markdown.js' },
+          { src: 'reveal-js/plugin/notes/notes.js', async: true },
+          { src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+        ]
+      });
+    </script>
+  </body>
+</html>
