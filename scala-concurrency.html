@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="ru">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,7 +7,8 @@
     <title>Параллельные вычисления в Scala</title>
 
     <link rel="stylesheet" href="reveal-js/css/reveal.css">
-    <link rel="stylesheet" href="reveal-js/css/theme/white.css">
+    <link rel="stylesheet" href="reveal-js/css/theme/black.css">
+<!--    <link rel="stylesheet" href="reveal-js/css/theme/white.css">-->
 
     <!-- Theme used for syntax highlighting of code -->
     <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
@@ -79,8 +80,6 @@
 12. Домашнее задание (на параллелизм, на многозадачность)
 
 -->
-        <!--
-        -->
         <section style="text-align: left">
           <h3>План</h3>
           <ul>
@@ -178,16 +177,30 @@
               </ul>
           </aside>
         </section>
+          <section style="text-align: left">
+              <p><b>Вытесняющая и кооперативная многозадачность</b></p>
+              <ul>
+                  <li>вытесняющая (thread) - поддержка CPU, OS, JVM</li>
+                  <li>кооперативная (fiber) - библиотека переключения задач</li>
+              </ul>
+          </section>
+
           <section>
+          <section style="text-align: left">
+              <b>Часть 1. JVM</b>
+              <aside class="notes">
+                  <p>Рассмотрим возможности JVM</p>
+              </aside>
+          </section>
         <section style="text-align: left">
-          <b>JVM: Потоки (Threads)</b>
+          <b>JVM: Потоки (Threads) [IDE]</b>
           <pre><code class="scala" data-trim>
 class MyThread extends Thread
     override def run: Unit =
         ???
 val t = new MyThread
-t.start()
-t.join()
+t.start() // запускаем поток. Метод run начинает работать
+t.join()  // ждём завершения потока.
           </code></pre>
 
           <aside class="notes">
@@ -197,14 +210,14 @@ t.join()
           </aside>
         </section>
         <section style="text-align: left">
-              <b>JVM: ExecutorService, Runnable</b>
+              <b>JVM: ExecutorService, Runnable [IDE]</b>
               <pre><code class="scala" data-trim>
 val task1 = new Runnable
     def run: Unit =
         ???
 val ec: ExecutorService = ???
-val f = ec.submit(task1)
-f.get()
+val f = ec.submit(task1) // отправляем на исполнение
+f.get()                  // ждём результата работы
           </code></pre>
 
               <aside class="notes">
@@ -214,41 +227,73 @@ f.get()
               </aside>
         </section>
         <section style="text-align: left">
-          <p><b>JVM: Примитивы</b></p>
-            <ul>
-                <li>happens before (JMM) ("теория относительности" памяти JVM)</li>
-                <li class="fragment">@volatile (граничная переменная)</li>
-                <li class="fragment">synchronized (критическая секция)</li>
-                <li class="fragment">Atomic* (атомарные переменные)</li>
-                <li class="fragment">ThreadLocal (внутрипотоковые переменные)</li>
-            </ul>
-
-          <aside class="notes">
-            <p>happens before</p>
+          <p><b>JMM ("теория относительности"): порядок исполнения</b></p>
               <ul>
-                  <li>в одном потоке - всё последовательно. т.е. все события до текущей строчки - произошли.</li>
-                  <li>в двух потоках - по умолчанию - никаких гарантий</li>
-                  <li>исключения
-                      <ul>
-                          <li>освобождение монитора и захват монитора - всё, что было до освобождения,
-                              случилось до всего после захвата монитора</li>
-                          <li>переменная volatile - всё, что случилось до записи, случилось до событий,
-                              после чтения.
-                          </li>
-                          <li>начало потока (start) - до всех операций внутри - до окончания потока (join)</li>
-                      </ul>
+                  <li>в одном потоке - всё последовательно. Т.е. все события до текущей строчки - произошли.</li>
+                  <li>в двух потоках - нет гарантий порядка действий.
+                       Состояние памяти может отличаться.
+<pre>
+Thread 1    Thread 2
+x = 1       val r1 = y
+y = 2       if r1==2 then r2 = x
+</pre>
+                      Если мы прочитали r1 == 2, то это не значит, что r2 будет == 1.
                   </li>
               </ul>
-              <p>volatile - запись гарантированно происходит раньше чтения. При этом всё, что произошло в потоке до записи
-              будет видно в других потоках после чтения.</p>
-            <p>AtomicLong, AtomicInteger - потоко-безопасные переменные. Меняются целиком. Для обычного long'а,
-                состоящего из двух 32-битных слов, если два потока будут менять оба слова (0 и -1), в какой-то момент может оказаться, лонг имеет другое значение,
-            не равное ни одному из имеющихся. А именно, одно слово из одного потока, а другое - из другого.
-            </p>
-              <p>ThreadLocal - не имеет отношения к синхронизации потоков.
-                  Но зато в каждом потоке значение переменной - своё.</p>
-          </aside>
         </section>
+          <section style="text-align: left">
+              <p><b>JMM ("теория относительности"): happens before</b></p>
+              <ul>
+                  <li>граница горизонта событий: гарантируется порядок: события "до"
+                      <table>
+                          <thead>
+                          <tr>
+                              <th>Thread 1</th>
+                              <th>Thread 2</th>
+                          </tr>
+                          </thead>
+                          <tbody>
+                          <tr>
+                              <td>события "до"</td>
+                              <td></td>
+                          </tr>
+                          <tr>
+                              <td colspan="2">граница горизонта событий</td>
+                          </tr>
+                          <tr>
+                              <td></td>
+                              <td>события "после"</td>
+                          </tr>
+                          </tbody>
+                      </table>
+                  </li>
+              </ul>
+
+          </section>
+
+          <section style="text-align: left">
+              <p><b>JMM ("теория относительности"): границы горизонта событий</b></p>
+              <ul>
+                  <li>запись->чтение переменной @volatile </li>
+                  <li>начало потока (start) - до всех операций внутри</li>
+                  <li>окончание потока (join) - после все операций</li>
+                  <li>освобождение и захват монитора</li>
+                  <li>создание объекта с final-полями</li>
+                  <li>Atomic*</li>
+                  <li>https://shipilev.net/blog/2014/jmm-pragmatics/</li>
+                  <li>(ThreadLocal)</li>
+              </ul>
+              <aside class="notes">
+                  <p>volatile - запись гарантированно происходит раньше чтения. При этом всё, что произошло в потоке до записи
+                      будет видно в других потоках после чтения.</p>
+                  <p>AtomicLong, AtomicInteger - потоко-безопасные переменные. Меняются целиком. Для обычного long'а,
+                      состоящего из двух 32-битных слов, если два потока будут менять оба слова (0 и -1), в какой-то момент может оказаться, лонг имеет другое значение,
+                      не равное ни одному из имеющихся. А именно, одно слово из одного потока, а другое - из другого.
+                  </p>
+                  <p>ThreadLocal - не имеет отношения к синхронизации потоков.
+                      Но зато в каждом потоке значение переменной - своё.</p>
+              </aside>
+          </section>
         <section style="text-align: left">
           <b>ForkJoinPool</b>
             <ul>
@@ -257,6 +302,7 @@ f.get()
                 <li class="fragment">решение - work steal</li>
                 <li class="fragment">join - исполняет другие задачи из очереди, вместо блокировки</li>
                 <li class="fragment">map-reduce - классическая задача параллельной обработки</li>
+                <li class="fragment">[IDE]</li>
             </ul>
           <aside class="notes">
             <p>алгоритмические вычислительные задачи (CPU-bound)</p>
@@ -290,7 +336,6 @@ f.get()
           <section>
           <section style="text-align: left">
               <b>Часть 2. Scala</b>
-
               <aside class="notes">
                   <p>Рассмотрим возможности библиотеки Scala</p>
               </aside>
@@ -299,10 +344,11 @@ f.get()
               <b>Future</b>
 
               <ul>
-                  <li >контейнер для значения, которое где-то параллельно вычисляется</li>
+                  <li >"контейнер" для значения, которое где-то параллельно вычисляется</li>
                   <li class="fragment">получение результата - await</li>
-                  <li class="fragment">комбинаторы - map, flatMap, </li>
-                  <li class="fragment">ExecutionContext - пул, в котором исполняются Future</li>
+                  <li class="fragment">комбинаторы - map, flatMap,</li>
+                  <li class="fragment">ExecutionContext - пул потоков, в котором исполняются Future</li>
+                  <li class="fragment">[IDE]</li>
               </ul>
               <aside class="notes">
                   <p>https://docs.scala-lang.org/overviews/scala-book/futures.html</p>
@@ -310,16 +356,16 @@ f.get()
               </aside>
           </section>
         <section style="text-align: left">
-          <p><b>cats.IO</b></p>
+          <p><b>Future: несовершенство</b></p>
+            <ul class="fragment">
+                <li>самозапуск</li>
+                <li class="fragment">необходимость ExecutorContext'а в точке создания</li>
+                <li class="fragment">нарушение правила подстановки (referential transparency)</li>
+            </ul>
+            <p></p>
             <ul>
-                <li>проблемы Future
-                    <ul class="fragment">
-                        <li>самозапуск</li>
-                        <li class="fragment">необходимость ExecutorContext'а в точке создания</li>
-                        <li class="fragment">нарушение правила подстановки (referential transparency)</li>
-                    </ul>
-                </li>
                 <li class="fragment">Решение - cats.effect.IO</li>
+                <li class="fragment">[IDE]</li>
             </ul>
           <aside class="notes">
             <p>Future начинает исполняться сразу</p>
@@ -331,7 +377,8 @@ f.get()
           </section>
           <section>
               <b>Выбор пула потоков</b>
-              <img src="https://typelevel.org/cats-effect/img/concurrency-thread-pools.png"/>
+              <img src="scala-study/concurrency-thread-pools.png" alt="Сравнение пулов потоков"/>
+              <p>(from https://typelevel.org/cats-effect/img/concurrency-thread-pools.png)</p>
               <aside class="notes">
                   <ul>
                       <li>Для CPU-bound задач - пул с количеством потоков, связанным с количеством процессоров
