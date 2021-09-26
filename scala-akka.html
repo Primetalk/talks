@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="ru">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,7 +7,8 @@
     <title>Фреймворк Akka</title>
 
     <link rel="stylesheet" href="reveal-js/css/reveal.css">
-    <link rel="stylesheet" href="reveal-js/css/theme/white.css">
+<!--      <link rel="stylesheet" href="reveal-js/css/theme/black.css">-->
+      <link rel="stylesheet" href="reveal-js/css/theme/white.css">
 
     <!-- Theme used for syntax highlighting of code -->
     <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
@@ -88,8 +89,8 @@ Persistence?
             </li>
               <li class="fragment">Часть 1. Простые сценарии использования
                   <ul class="fragment">
-                      <li>ping-pong</li>
-                      <li class="fragment"><a href="https://doc.akka.io/docs/akka/current/typed/interaction-patterns.html#per-session-child-actor">пример ключи-бумажник</a></li>
+                      <li>ping-pong [IDE]</li>
+                      <li class="fragment"><a href="https://doc.akka.io/docs/akka/current/typed/interaction-patterns.html#per-session-child-actor">пример ключи-бумажник</a> [IDE]</li>
                   </ul>
               </li>
               <li class="fragment">Часть 2. Некоторые детали реализации (упрощённая модель)
@@ -98,7 +99,7 @@ Persistence?
                       <li class="fragment">обработка ошибок и жизненный цикл</li>
                   </ul>
               </li>
-              <li class="fragment">Часть 3. Пример "ключи-бумажник" на cats
+              <li class="fragment">Часть 3. Пример "ключи-бумажник" на cats [IDE]
               </li>
               <li class="fragment">Домашнее задание</li>
           </ul>
@@ -127,8 +128,8 @@ Persistence?
         <section style="text-align: left">
           <b>Введение. Модель акторов</b>
             <p></p>
-            <img class="fragment" src="https://doc.akka.io/docs/akka/current/typed/guide/diagrams/actor_graph.png" />
-            <img class="fragment" src="https://doc.akka.io/docs/akka/current/typed/guide/diagrams/serialized_timeline_invariants.png" />
+            <img class="fragment" src="https://doc.akka.io/docs/akka/current/typed/guide/diagrams/actor_graph.png" alt="Акторы"/>
+            <img class="fragment" src="https://doc.akka.io/docs/akka/current/typed/guide/diagrams/serialized_timeline_invariants.png"  alt="Timeline"/>
           <ul>
             <li class="fragment">миллионы акторов, отправляющих сообщения</li>
             <li class="fragment">сообщения неизменяемые</li>
@@ -190,6 +191,11 @@ guard          actor1            actor2
                       <li class="fragment">когда собраны все принадлежности, отправляем сообщение готовности</li>
                   </ul>
               </section>
+              <section style="text-align: left">
+                  <b>Akka: ключи-бумажник</b>
+                  <img src="https://doc.akka.io/docs/akka/current/typed/images/per-session-child.png" alt="Диаграмма взаимодействия экторов в примере ключи-бумажник"/>
+              </section>
+
               <section style="text-align: left">
                   <b>Akka: ключи-бумажник 2</b>
                   <pre><code class="scala" data-trim>
