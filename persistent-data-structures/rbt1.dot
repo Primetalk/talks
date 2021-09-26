@@ -1,0 +1,13 @@
+strict graph {
+  a [shape=none]
+  b [shape=doublecircle, style=filled, fillcolor=red]
+  c [shape=none]
+  d
+  e [shape=none]
+  f [shape=doublecircle, style=filled, fillcolor=red]
+  b -- a
+  b -- c
+  d -- b
+  d -- f
+  f -- e
+}
