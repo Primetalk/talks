@@ -1,0 +1,498 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Компилируемая конфигурация</title>
+
+		<link rel="stylesheet" href="reveal-js/css/reveal.css">
+		<link rel="stylesheet" href="reveal-js/css/theme/sky.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h3>Компилируемая конфигурация</h3>
+					<h4>распределённой системы</h4>
+					<h4 class="fragment">(с примерами на языке Scala)</h4>
+					<p><i>Арсений Жижелев, Праймтолк</i></p>
+				</section>
+<!--				<section>-->
+<!--					<h4>План</h4>-->
+<!--					<ul>-->
+<!--						<li>Введение-->
+<!--							<ul>-->
+<!--								<li>распределённые системы, конфигурирование</li>-->
+<!--								<li>окружения - разработка, тестирование, рабочая система (production)</li>-->
+<!--								<li>версионирование конфигурации</li>-->
+<!--								<li>микросервисы?</li>-->
+<!--&lt;!&ndash;								<li>микросервисы?</li>&ndash;&gt;-->
+<!--							</ul>-->
+<!--						</li>-->
+<!--						<li>Компилируемая конфигурация-->
+<!--							<ul>-->
+<!--								<li>пример системы - эхо клиент и сервер</li>-->
+<!--								<li>идентификация узлов</li>-->
+<!--								<li>уточнённые (refined) типы</li>-->
+<!--								<li>время жизни узлов</li>-->
+<!--								<li>использование конфигурации</li>-->
+<!--								<li>альтернативные конфигурации - один узел, два узла, тестовые конфигурации</li>-->
+<!--								<li>связывание сервисов (с проверкой типа)</li>-->
+<!--								<li>демонстрационное приложение</li>-->
+<!--							</ul>-->
+<!--						</li>-->
+<!--						<li>Заключение-->
+<!--							<ul>-->
+<!--								<li>множественность конфигураций</li>-->
+<!--								<li>проверка корректности на этапе компиляции</li>-->
+<!--								<li>версионирование конфигурации в репозитории</li>-->
+<!--								<li>согласованность конфигурации на всех узлах</li>-->
+<!--								<li>альтернативные варианты хранения конфигурации</li>-->
+<!--								<li>изменение конфигурации в рантайме</li>-->
+<!--								<li>плюсы/минусы</li>-->
+
+<!--							</ul>-->
+<!--						</li>-->
+<!--					</ul>-->
+<!--				</section>-->
+				<section>
+					<section>
+						<h4>Конфигурирование распределённых систем</h4>
+					</section>
+					<section>
+						<h4>В распределённой системе</h4>
+						<ul>
+							<li class="fragment">узлы должны корректно состыковываться (правильные порты/протоколы)</li>
+							<li class="fragment">сообщения должны быть одной версии</li>
+							<li class="fragment">ключи шифрования/пароли на взаимодействующих узлах - одинаковые</li>
+							<li class="fragment">одинаковые сервисы (журналирование) - сконфигурированы единообразно </li>
+						</ul>
+						<p class="fragment">как это гарантировать?</p>
+					</section>
+					<section>
+						<h4>Семейство конфигураций</h4>
+						<ul>
+							<li class="fragment">маленький масштаб - несколько сервисов на одном узле</li>
+							<li class="fragment">большой масштаб - много узлов на один сервис</li>
+							<li class="fragment">тестовая конфигурация - часть сервисов, корректно состыкованных</li>
+						</ul>
+						<p class="fragment">как поддерживать множество конфигураций?</p>
+					</section>
+					<section>
+						<h4>Развитие проекта</h4>
+						<ul>
+							<li class="fragment">Внесение/ревью изменений (PR, QA)</li>
+							<li class="fragment">Версионность</li>
+							<li class="fragment">Ветки</li>
+						</ul>
+						<p class="fragment">как гарантировать корректное слияние конфигураций?</p>
+					</section>
+
+					<section>
+						<h4>Базовые принципы</h4>
+						<ul>
+							<li class="fragment">Одинаковый classpath на всех узлах и при тестировании</li>
+							<li class="fragment">Конфигурация = код
+								<ul>
+									<li class="fragment">хранится в системе контроля версий</li>
+									<li class="fragment">компилируется</li>
+									<li class="fragment">отсутствие дублирования всех параметров</li>
+									<li class="fragment">строгая типизация</li>
+									<li class="fragment">макросы (?)</li>
+								</ul>
+						</ul>
+					</section>
+
+				</section>
+				<section>
+					<section>
+						<h4>Пример: клиент-сервер</h4>
+						<img src="config/client-server-diagram.png" border="0"/>
+					</section>
+					<section>
+						<h4>Идентификация узлов</h4>
+						<pre><code class="scala" data-trim>
+sealed trait NodeIdImpl
+case object Backend  extends NodeIdImpl
+case object Frontend extends NodeIdImpl
+          				</code></pre>
+						<pre class="fragment"><code class="scala" data-trim>
+case object Singleton
+type NodeId = Singleton.type
+          				</code></pre>
+					</section>
+					<section>
+						<h4>Фантомные типы</h4>
+						<pre><code class="scala" data-trim>
+case class A[B](c: Int)
+          				</code></pre>
+						<ul>
+							<li>параметр типа не используется внутри класса</li>
+							<li class="fragment">компилятор обеспечивает проверку</li>
+							<li class="fragment">можно использовать для классификации на этапе компиляции</li>
+						</ul>
+					</section>
+					<section>
+						<h4>Уточнённые типы (refined)</h4>
+						<ul>
+							<li class="fragment">простые типы
+						<pre><code class="scala" data-trim>
+type MyInt = Int
+          				</code></pre>
+							</li>
+							<li class="fragment">синглетонные типы
+						<pre><code class="scala" data-trim>
+type OnlyZero = 0
+type OnlyA    = "A" // только такая строка,
+type OnlyLettersRegEx = "[a-zA-Z]*" // в макросах - RegEx
+          				</code></pre>
+							</li>
+							<li class="fragment">уточнённые типы
+						<pre><code class="scala" data-trim>
+type PortNumber    = Refined[Int,    Closed[0, 65535]]
+type UrlPathPrefix = Refined[String, MatchesRegex["[a-zA-Z_0-9/]*"]]
+          				</code></pre>
+							</li>
+						</ul>
+					</section>
+					<section>
+						<h4>Порты</h4>
+						<ul>
+						<li  class="fragment">Для TCP соединения:
+						<pre><code class="scala" data-trim>
+case class TcpPort[Protocol](
+  portNumber: PortNumber)
+case class TcpEndPoint[Protocol](
+  node: NodeId, port: TcpPort[Protocol])
+						</code></pre>
+						</li>
+						<li  class="fragment">Для HTTP(s) - префикс пути:
+						<pre><code class="scala" data-trim>
+type UrlPathPrefix = Refined[String,
+  MatchesRegex["[a-zA-Z_0-9/]*"]]
+case class PortWithPrefix[Protocol](
+  portNumber: PortNumber,
+  pathPrefix: UrlPathPrefix)
+          				</code></pre>
+						</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<h4>Протоколы</h4>
+					<ul>
+						<li>REST HTTP JSON
+							<pre><code class="scala" data-trim>
+sealed trait JsonHttpRestProtocol[Request,
+  Response]
+          					</code></pre>
+						</li>
+						<li class="fragment">простой HTTP протокол
+							<pre><code class="scala" data-trim>
+sealed trait SimpleHttpGetRest[Request,
+  Response]
+          					</code></pre>
+						</li>
+					</ul>
+				</section>
+				<section>
+					<h4>Эхо-сервис</h4>
+					<ul>
+						<li >эхо протокол
+							<pre><code class="scala" data-trim>
+type EchoProtocol[A] = SimpleHttpGetRest[A, A]
+         					</code></pre>
+						</li>
+						<li class="fragment">конфигурация эхо-сервиса
+							<pre><code class="scala" data-trim>
+trait EchoConfig[A] extends ServiceConfig {
+  def portNumber: PortNumber = 8081
+  def echoPort: PortWithPrefix[EchoProtocol[A]] =
+    PortWithPrefix[EchoProtocol[A]](portNumber, "echo")
+  def echoService: HttpSimpleGetEndPoint[NodeId, EchoProtocol[A]] =
+    providedSimpleService(echoPort)
+}
+         					</code></pre>
+						</li>
+						<li class="fragment">значения по умолчанию можно не указывать</li>
+					</ul>
+				</section>
+				<section>
+					<h4>Клиент эхо-сервиса</h4>
+
+							<pre><code class="scala" data-trim>
+trait EchoClientConfig[A] {
+  def testMessage: UrlPathElement = "test"
+  def pollInterval: FiniteDuration
+  def echoServiceDependency:
+    HttpSimpleGetEndPoint[_, EchoProtocol[A]]
+}
+         					</code></pre>
+
+				</section>
+				<section>
+					<h4>Реализация сервиса (использование конфигурации)</h4>
+
+					<pre><code class="scala" data-trim>
+type ResourceReader[F[_], Config, A] =
+  Reader[Config, Resource[F, A]]
+         			</code></pre>
+					<ul>
+						<li class="fragment"><tt>Config</tt> - наша конфигурация</li>
+						<li class="fragment"><tt>Reader</tt> - функция</li>
+						<li class="fragment"><tt>Resource</tt> - "ресурс" с корректным завершением</li>
+						<li class="fragment"><tt>A</tt> - тип нашего ресурса-сервиса</li>
+						<li class="fragment"><tt>F[_]</tt> - обрамление эффектов ("монада", контекст)</li>
+					</ul>
+				</section>
+				<section>
+					<h4>Реализация сервиса (2)</h4>
+
+					<pre><code class="scala" data-trim>
+trait ServiceImpl[F[_]] {
+  type Config
+  def resource(
+    implicit
+    resolver: AddressResolver[F],
+    timer: Timer[F],
+    contextShift: ContextShift[F],
+    applicative: Applicative[F],
+    ec: ExecutionContext
+  ): ResourceReader[F, Config, Unit]
+}
+         			</code></pre>
+				</section>
+				<section>
+					<h4>Контроль времени жизни</h4>
+					<ul>
+						<li class="fragment">"вечный" сервис - ждёт сигнала завершения работы извне</li>
+						<li class="fragment">"временный" сервис - ждёт указанное время и сам завершается
+							<pre><code class="scala" data-trim>
+  def finiteLifecycle[F[_]: Timer: Sync](
+    config: FiniteDurationLifecycleConfig): F[ExitCode] =
+    Sync[F].map(
+      Timer[F].sleep(config.lifetime)
+    )(_ => ExitCode.Success)
+         					</code></pre>
+						</li>
+						<li class="fragment">автономный - работает и по внутренним условиям завершается</li>
+					</ul>
+				</section>
+				<section>
+					<section>
+						<h4>Один узел - несколько сервисов</h4>
+						<pre><code class="scala" data-trim>
+object SingleNodeImpl extends ZeroServiceImpl[IO]
+  with EchoServiceService
+  with EchoClientService
+  with FiniteDurationLifecycleServiceImpl
+{
+  type Config = EchoConfig[String] with EchoClientConfig[String]
+    with FiniteDurationLifecycleConfig
+}
+         					</code></pre>
+						<ul class="fragment">
+							<li>Тип конфигурации включает типы всех сервисов</li>
+						</ul>
+					</section>
+					<section>
+						<h4>Два узла</h4>
+						<pre><code class="scala" data-trim>
+object TwoJvmNodeImpls {
+  object TwoJvmNodeServerImpl extends ZeroServiceImpl[IO]
+    with EchoServiceService with SigIntLifecycleServiceImpl {
+    type Config = EchoConfig[String] with SigTermLifecycleConfig
+  }
+
+  object TwoJvmNodeClientImpl extends ZeroServiceImpl[IO]
+    with EchoClientService
+    with FiniteDurationLifecycleServiceImpl {
+    type Config = EchoClientConfig[String]
+      with FiniteDurationLifecycleConfig
+  }
+}
+         					</code></pre>
+					</section>
+					<section>
+						<p>Разрешение адресов узлов</p>
+						<ul>
+							<li class="fragment">часть информации становится доступна в runtime'е
+							</li>
+							<li class="fragment">например, адреса узлов
+								<pre><code class="scala" data-trim>
+case class NodeAddress[NodeId](host: Uri.Host)
+trait AddressResolver[F[_]] {
+  def resolve[NodeId](nodeId: NodeId): F[NodeAddress[NodeId]]
+}
+         					</code></pre>
+							</li>
+							<li class="fragment">если возможно, то генерировать код и запекать в конфигурацию
+							</li>
+						</ul>
+					</section>
+					<section>
+						<p>Конфигурация для одного узла</p>
+						<pre><code class="scala" data-trim>
+object SingleNodeConfig extends EchoConfig[String]
+  with EchoClientConfig[String] with FiniteDurationLifecycleConfig
+{
+  ...
+  def echoServiceDependency = echoService
+  override def testMessage: UrlPathElement = "hello"
+  def pollInterval: FiniteDuration = 1.second
+  def lifetime: FiniteDuration = 10500.milliseconds
+}
+         					</code></pre>
+						<ul>
+							<li class="fragment">часть строк пропущено</li>
+							<li class="fragment">зависимость - функция этого же узла</li>
+							<li class="fragment">изменены значения по умолчанию</li>
+							<li class="fragment">Scala DSL для единиц времени</li>
+						</ul>
+					</section>
+					<section>
+						<p>Конфигурация для двух узлов</p>
+						<pre><code class="scala" data-trim>
+object TwoJvmConfig {
+  sealed trait NodeIdImpl
+  case object NodeServer extends NodeIdImpl
+  case object NodeClient extends NodeIdImpl
+  object NodeServerConfig extends EchoConfig[String]
+    with SigTermLifecycleConfig {
+    type NodeId = NodeIdImpl
+    def nodeId: NodeIdImpl = NodeServer
+    override def portNumber: PortNumber = 8080
+  }
+  ...
+}
+         					</code></pre>
+						<ul>
+							<li class="fragment">один охватывающий объект</li>
+						</ul>
+					</section>
+					<section>
+						<p>Конфигурация для двух узлов (2)</p>
+						<pre><code class="scala" data-trim>
+object TwoJvmConfig {
+  ...
+  object NodeClientConfig extends EchoClientConfig[String]
+    with FiniteDurationLifecycleConfig {
+    def echoServiceDependency = NodeServerConfig.echoService
+    def pollInterval: FiniteDuration = 1.second
+    ...
+  }
+}
+         					</code></pre>
+						<ul>
+							<li class="fragment">зависимость - ссылка на функцию другого узла</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<section>
+						<p>Общий процесс разработки</p>
+						<ul>
+							<li class="fragment">runtime-конфигурация - jar-файл с точными зависимостями</li>
+							<li class="fragment">изменения - тикет, PR, тестирование</li>
+							<li class="fragment">production-конфигурация - возможно, следует хранить в отдельном репозитории</li>
+						</ul>
+					</section>
+					<section>
+						<p>Сравнение с альтернативами</p>
+						<ul>
+							<li class="fragment">текстовый файл на рабочем хосте
+								<ul>
+									<li>рассинхронизация между узлами</li>
+									<li>опечатки</li>
+									<li>разные порты клиент/сервер</li>
+								</ul>
+							</li>
+
+						</ul>
+					</section>
+					<section>
+						<p>Сравнение с альтернативами (2)</p>
+						<ul>
+							<li>централизованное хранилище ключ-значение
+								<ul>
+									<li>версиониование?</li>
+									<li>несколько веток?</li>
+									<li>структурные параметры (включение/выключение промежуточного компонента)</li>
+								</ul>
+							</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<section>
+						<p>плюсы</p>
+						<ul>
+							<li class="fragment">статическая проверка конфигурации</li>
+							<li class="fragment">множественность конфигураций</li>
+							<li class="fragment">DSL</li>
+							<li class="fragment">гарантии целостности всей системы</li>
+							<li class="fragment">поддержка изменений с сохранением гарантий</li>
+							<li class="fragment">количество кода немного меньше (нет валидации и парсинга конфигурации)</li>
+							<li class="fragment">модульность</li>
+							<li class="fragment">тестируемость</li>
+						</ul>
+
+					</section>
+					<section>
+						<p>минусы</p>
+						<ul>
+							<li class="fragment">непривычность (aka "сложность")</li>
+							<li class="fragment">отсутствие инструментария</li>
+							<li class="fragment">высокие требования к процессу разработки</li>
+							<li class="fragment">сложно обойти защиту в случае необходимости</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<section>
+						<p>Заключение</p>
+						<ul>
+							<li class="fragment">можно реализовать на других языках</li>
+							<li class="fragment">макросы позволяют расширить защиту</li>
+							<li class="fragment">можно упростить внешний вид конфигурации</li>
+						</ul>
+					</section>
+				</section>
+				<section>
+					<h3>Вопросы?</h3>
+				</section>
+			</div>
+		</div>
+
+		<script src="reveal-js/lib/js/head.min.js"></script>
+		<script src="reveal-js/js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
