@@ -1,0 +1,18 @@
+strict graph {
+  bgcolor="#3f3f3f00"
+  node [style=filled fillcolor="white"]
+  edge [color="lightblue"]
+  4
+
+  7
+  8
+  9
+
+  5
+
+
+  4 -- 7
+  4 -- 5
+  7 -- 9
+  7 -- 8
+}

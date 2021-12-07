@@ -1,0 +1,56 @@
+strict graph {
+  bgcolor="#3f3f3f00"
+
+  node [style=filled fillcolor="white"]
+  edge [color="lightblue" fontcolor ="lightblue"]
+  subgraph {
+    label = 0
+    8
+  }
+
+  subgraph {
+    label = 1
+    4
+
+    5
+    4 -- 5 [color = red, label = Link]
+  }
+
+  subgraph {
+    label = 2
+    10
+    14
+    18
+    16
+
+    10 -- 14 [color = red, label = Link]
+    10 -- 16
+
+    14 -- 18
+  }
+
+  subgraph {
+    label = 3
+    9
+    11
+    13
+    12
+
+    21
+    22
+    23
+
+    31
+
+    9 -- 11 [color = red, label = Link]
+    9 -- 13
+    9 -- 12
+
+    11 -- 21
+    11 -- 22
+
+    21 -- 23
+
+    13 -- 31
+  }
+}

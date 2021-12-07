@@ -1,4 +1,8 @@
 strict graph {
+  bgcolor="#3f3f3f00"
+  node [style=filled fillcolor="white"]
+  edge [color="lightblue"]
+
   a [shape=none]
   b [shape=doublecircle, style=filled, fillcolor=red]
   c [shape=none]
