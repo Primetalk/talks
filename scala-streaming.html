@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="ru">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -105,10 +105,11 @@
             <section style="text-align: left">
               <b>Введение. Конечный автомат с выходом (трансдьюсер)</b>
               <p></p>
-              <img src="scala-study/fst-example.png" width="50%" height="50%"/>
+              <img src="scala-study/fst-example.png" width="400" height="40%" alt="Пример конечного автомата"/>
               <ul>
-                <li class="fragment">вход/выход - потоки символов. </li>
-                <li class="fragment">Ожидания зависят от состояния. Может порождать выход спонтанно.</li>
+                <li class="fragment">вход/выход - потоки символов</li>
+                <li class="fragment">ожидания зависят от состояния</li>
+                <li class="fragment">может порождать выход спонтанно</li>
                 <li class="fragment">конечный объём памяти (bounded)</li>
                 <li class="fragment">композиция потоковых обработчиков</li>
               </ul>
@@ -123,18 +124,18 @@
               <section style="text-align: left">
                   <b>Введение. Сеть Петри</b>
                   <p></p>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Detailed_petri_net.png" width="50%" height="50%"/>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Detailed_petri_net.png" width="50%" height="50%" alt="Сеть Петри"/>
                   <ul>
-                      <li class="fragment">места - кружочки (там могут находиться данные)</li>
-                      <li class="fragment">переходы - прямоугольники (обработка данных)</li>
+                      <li class="fragment">метки (чёрные точки) - данные</li>
+                      <li class="fragment">места (для меток)</li>
+                      <li class="fragment">переходы (прямоугольники) - обработка</li>
                       <li class="fragment">граф - двудольный (места -> переходы -> места)</li>
-                      <li class="fragment">метки - чёрные кружочки (данные)</li>
                   </ul>
               </section>
           </section>
-          <section>
-        <section style="text-align: left">
-          <b>Пример 1. Числа Фибоначчи (fs2)</b>
+        <section>
+          <section style="text-align: left">
+          <b>Пример 1. Числа Фибоначчи (fs2) [IDE]</b>
           <pre><code class="scala" data-trim>
     def fib(prev: BigInt, b: BigInt): Stream[Pure, BigInt] =
         Stream.emit(b) ++ fib(b, prev + b)
@@ -145,7 +146,7 @@
           </code></pre>
             <pre class="fragment"><code class="scala" data-trim>
     assert(fib01
-        .map(_ .pow(2))
+        .map(_.pow(2))
         .filter(_ % 2 == 1)
         .take(5).toList == List(1, 1, 9, 25, 169)
     )
@@ -157,7 +158,19 @@
           <aside class="notes">
            [IDE] Рассмотрим пример 1. Бесконечный поток чисел Фибоначчи
           </aside>
-        </section>
+          </section>
+          <section style="text-align: left">
+              <b>Пример 1. Числа Фибоначчи (fs2) (2)</b>
+              <ul>
+                  <li class="fragment">ленивые вычисления</li>
+                  <li class="fragment">бесконечный поток</li>
+                  <li class="fragment">комбинаторы для формирования программы</li>
+                  <li class="fragment">отложенное исполнение</li>
+              </ul>
+              <aside class="notes">
+                  [IDE] Рассмотрим пример 1. Бесконечный поток чисел Фибоначчи
+              </aside>
+          </section>
           </section>
           <section>
               <section style="text-align: left">
@@ -242,7 +255,7 @@
                   </ul>
               </section>
               <section style="text-align: left">
-                  <b>Пример 3. Обнаружение структуры (парсинг) (2)</b>
+                  <b>Пример 3. Обнаружение структуры (парсинг) (2) [IDE]</b>
 
                   <pre><code class="scala" data-trim>
   def mapAccumulate[S, O2](init: S)(f: (S, O) => (S, O2)): Stream[F, (S, O2)]
@@ -276,8 +289,8 @@
           <section>
               <section style="text-align: left">
                   <b>Часть 3. Граф потоков данных</b>
-                  <img src="https://doc.akka.io/docs/akka/current/images/simple-graph-example.png"/>
-                  <img src="scala-study/FlowSystem.png"/>
+                  <img src="https://doc.akka.io/docs/akka/current/images/simple-graph-example.png" alt="Пример системы поточной обработки"/>
+                  <img src="scala-study/FlowSystem.png" alt="Пример системы поточной обработки"/>
 
               </section>
               <section style="text-align: left">
@@ -406,13 +419,13 @@
                   </ul>
               </section>
               <section style="text-align: left">
-                  <p><b>Пример take(n)</b></p>
+                  <p><b>Пример take(n) [IDE]</b></p>
               </section>
               <section style="text-align: left">
-                  <p><b>Пример асинхронной обработки через очередь</b></p>
+                  <p><b>Пример асинхронной обработки через очередь [IDE]</b></p>
               </section>
               <section style="text-align: left">
-                  <p><b>FS2: merge</b></p>
+                  <p><b>FS2: merge [IDE]</b></p>
                   <ul>
                       <li>расщепление потоков для разных параллельных задач</li>
                       <li class="fragment">как выполняется слияние?</li>
