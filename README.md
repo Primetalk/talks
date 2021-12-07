@@ -2,6 +2,9 @@
 
 ### Talks:
 
+- 2021 Неизменяемые структуры данных [video](https://youtu.be/mAV2yfUVRZ0)
+- 2021 Gradle: сборка не JVM-проектов [video](https://youtu.be/Fvwgvyva5co)
+- 2020 Компилируемая конфигурация распределённой системы [video](https://youtu.be/eXQByuM4a4Y)
 - 2020 [Доказательство программ, язык Arend (RU)](arend.html), [video](https://youtu.be/TvlXYiN4DyI)
 - 2018 Типы данных на основе предикатов (Refined types) [`refined` library (RU)](refined.html), [video](https://youtu.be/qpYI90b5k5Y) [flickr](https://www.flickr.com/photos/outsourcing/sets/72157704166482141) (на [встрече λ-vrn](https://www.dataart.ru/news/vstrecha-obnovlennogo-tekhnicheskogo-soobshestva-proshla-v-voronezhe/) в DataArt).
 - 2019 [Язык программирования для юристов (Language for lawyers)](language-logic-en-notes.html) (draft)
