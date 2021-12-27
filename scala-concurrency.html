@@ -208,7 +208,7 @@
         <section style="text-align: left">
           <b>JVM: Потоки (Threads) [IDE]</b>
           <pre><code class="scala" data-trim>
-class MyThread extends Thread
+class MyThread extends Thread:
     override def run: Unit =
         ???
 val t = new MyThread
@@ -225,7 +225,7 @@ t.join()  // ждём завершения потока.
         <section style="text-align: left">
               <b>JVM: ExecutorService, Runnable [IDE]</b>
               <pre><code class="scala" data-trim>
-val task1 = new Runnable
+val task1 = new Runnable:
     def run: Unit =
         ???
 val ec: ExecutorService = ???
@@ -248,9 +248,10 @@ f.get()                  // ждём результата работы
 <pre>
 Thread 1    Thread 2
 x = 1       val r1 = y
-y = 2       if r1==2 then r2 = x
+y = 2       if r1 == 2 then r2 = x
+            println(r2)
 </pre>
-                      Если мы прочитали r1 == 2, то это не значит, что r2 будет == 1.
+                      Если r1 == 2, то это ещё не значит, что r2 == 1.
                   </li>
               </ul>
         </section>
@@ -403,8 +404,8 @@ y = 2       if r1==2 then r2 = x
           </section>
           <section>
               <section>
-              <b>Домашнее задание</b>
-
+              <p><b>Домашнее задание</b></p>
+                <a href="https://github.com/scala-consulting/scala-challenges/tree/main/6_scala-concurrency">https://github.com/scala-consulting/scala-challenges/tree/main/6_scala-concurrency</a>
                   <aside class="notes">
                       <ul >
                           <li>Оценка не выставляется. Это учебное задание. Вы представляете исходный код
@@ -452,7 +453,7 @@ y = 2       if r1==2 then r2 = x
         <section style="text-align: left">
           <b>Литература/Источники/Что почитать</b>
           <ul>
-            <li>https://typelevel.org/cats-effect/concurrency/basics.html</li>
+            <li>https://typelevel.org/cats-effect/docs/concepts</li>
             <li>https://docs.scala-lang.org/overviews/scala-book/futures.html</li>
             <li>https://docs.scala-lang.org/overviews/parallel-collections/overview.html</li>
           </ul>
