@@ -5,22 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <title>Фреймворк Akka</title>
+    <meta name="description" content="Занятие по фреймворку Akka">
+    <meta name="author" content="Arseniy Zhizhelev">
 
-    <link rel="stylesheet" href="reveal-js/css/reveal.css">
-<!--      <link rel="stylesheet" href="reveal-js/css/theme/black.css">-->
-      <link rel="stylesheet" href="reveal-js/css/theme/white.css">
+    <link rel="stylesheet" href="reveal-js/dist/reset.css">
+    <link rel="stylesheet" href="reveal-js/dist/reveal.css">
+    <link rel="stylesheet" href="reveal-js/dist/theme/white.css">
+    <!--    <link rel="stylesheet" href="reveal-js/dist/theme/black.css">-->
 
     <!-- Theme used for syntax highlighting of code -->
-    <link rel="stylesheet" href="reveal-js/lib/css/zenburn.css">
+    <!--    <link rel="stylesheet" href="reveal-js/plugin/highlight/monokai.css">-->
+    <link rel="stylesheet" href="reveal-js/plugin/highlight/zenburn.css">
 
-    <!-- Printing and PDF exports -->
-    <script>
-      var link = document.createElement( 'link' );
-      link.rel = 'stylesheet';
-      link.type = 'text/css';
-      link.href = window.location.search.match( /print-pdf/gi ) ? 'reveal-js/css/print/pdf.css' : 'reveal-js/css/print/paper.css';
-      document.getElementsByTagName( 'head' )[0].appendChild( link );
-    </script>
+    <script src="reveal-js/plugin/highlight/highlight.js"></script>
   </head>
   <body>
     <div class="reveal">
@@ -162,7 +159,7 @@ Persistence?
           </section>
           <section>
         <section style="text-align: left">
-          <b>Akka: ping-pong</b>
+          <b>Akka: ping-pong [IDE]</b>
           <pre><code class="scala" data-trim>
 guard          actor1            actor2
   |
@@ -183,7 +180,7 @@ guard          actor1            actor2
           </aside>
         </section>
               <section style="text-align: left">
-                  <b>Akka: ключи-бумажник</b>
+                  <b>Akka: ключи-бумажник [IDE]</b>
                   <ul>
                       <li>отдельный актор для обработки задачи "выхода из дома"</li>
                       <li class="fragment">в свою очередь - создаёт два актора для сбора принадлежностей - ключей и бумажника</li>
@@ -291,7 +288,7 @@ guard          actor1            actor2
           </section>
           <section>
               <section style="text-align: left">
-                  <b>Ключи-бумажник на cats</b>
+                  <b>Ключи-бумажник на cats [IDE]</b>
               </section>
               <section>
                   <b>Домашнее задание</b>
@@ -343,22 +340,29 @@ guard          actor1            actor2
       </div>
     </div>
 
-    <script src="reveal-js/lib/js/head.min.js"></script>
-    <script src="reveal-js/js/reveal.js"></script>
-
+    <script src="reveal-js/dist/reveal.js"></script>
+    <script src="reveal-js/plugin/zoom/zoom.js"></script>
+    <script src="reveal-js/plugin/notes/notes.js"></script>
+    <script src="reveal-js/plugin/search/search.js"></script>
+    <script src="reveal-js/plugin/markdown/markdown.js"></script>
+    <script src="reveal-js/plugin/highlight/highlight.js"></script>
     <script>
-      // More info https://github.com/hakimel/reveal.js#configuration
-      Reveal.initialize({
-        history: true,
 
-        // More info https://github.com/hakimel/reveal.js#dependencies
-        dependencies: [
-          { src: 'reveal-js/plugin/markdown/marked.js' },
-          { src: 'reveal-js/plugin/markdown/markdown.js' },
-          { src: 'reveal-js/plugin/notes/notes.js', async: true },
-          { src: 'reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
-        ]
-      });
+        // Also available as an ES module, see:
+        // https://revealjs.com/initialization/
+        Reveal.initialize({
+            history: true,
+            controls: true,
+            progress: true,
+            center: true,
+            hash: true,
+            slideNumber: true,
+            // showNotes: true,
+
+            // Learn about plugins: https://revealjs.com/plugins/
+            plugins: [ RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]
+        });
+
     </script>
   </body>
 </html>
