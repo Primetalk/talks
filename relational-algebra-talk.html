@@ -41,9 +41,10 @@
          - Remind about typed ontology
          -
         1.1. Type programming hints
-         - singleton types
+         - type functions
          - type match
          - recursive type definition
+         - inline functions actually driven by types!
 
         1.2. Typed ontology intro
          - represent columns/fields/properties using typed objects.
@@ -63,22 +64,34 @@
         3.1. Multilayered database applications.
         3.2. Schema conversion
          - TODO: Good business case
-        4. Performance
-        4.1. Compilation (a lot happens at compile time).
-        4.2. Runtime
+        4. Library design
+        4.1. data -> ontology/schema -> meta ontology -> meta tools
 
-        5. Conclusion
-        5.1.
+        5. Performance
+        5.1. Compilation (a lot happens at compile time).
+        5.2. Runtime
+
+        6. Conclusion
+        6.1. Why it's important
+        6.2. Further plans
         -->
         <section>
           <section style="text-align: left">
-            <h3>Introduction</h3>
+            <b>Introduction</b>
             <ul>
               <li>Praise to Martin Oderski for DOT, Scala3 language design</li>
-              <li class="fragment">Typed ontology</li>
-              <li class="fragment">Type safe relational algebra</li>
-              <li class="fragment">Compile-time reduction to ordinary tuples/maps/...</li>
-              <li class="fragment">Compatible with `cats`, `fs2`</li>
+              <li class="fragment">Plan:
+                  <ul>
+                      <li class="fragment">Type-level programming</li>
+                      <li class="fragment">Typed ontology</li>
+                      <li class="fragment">Type safe relational algebra
+                          <ul>
+                              <li class="fragment">Compile-time reduction to ordinary tuples/maps/...</li>
+                              <li class="fragment">Compatible with `cats`, `fs2`</li>
+                          </ul>
+                      </li>
+                  </ul>
+              </li>
             </ul>
             <aside class="notes">
               <ul>
@@ -88,444 +101,429 @@
               </ul>
             </aside>
           </section>
-          <section style="text-align: left">
-            <h3>Reminder: type-level programming</h3>
-            <ul>
-              <li class="fragment">pattern matching on types</li>
-              <li class="fragment">recursive types</li>
-              <li class="fragment">inline</li>
-              <li class="fragment">constValue and constValueTuple, ValueOf</li>
-              <li class="fragment"></li>
-              <li class="fragment"></li>
-              <li class="fragment"></li>
-              <li class="fragment"></li>
-            </ul>
-          </section>
-            <section style="text-align: left">
-            <b>Введение. Streaming фрейворки (библиотеки)</b>
-            <ul>
-              <li class="fragment"><a href="https://doc.akka.io/docs/akka/current/stream/index.html">akka-streams</a></li>
-              <li class="fragment"><a href="https://fs2.io/">fs2</a></li>
-              <li class="fragment"><a href="https://spark.apache.org/">Spark</a></li>
-              <li class="fragment"><a href="https://flink.apache.org/">Flink</a></li>
-              <li class="fragment"><a href="https://github.com/Primetalk/SynapseGrid">SynapseGrid</a></li>
-            </ul>
-          </section>
-          <section style="text-align: left">
-            <b>Введение. Конечный автомат с выходом (трансдьюсер)</b>
-            <p></p>
-            <img src="scala-study/fst-example.png" width="400" height="40%" alt="Пример конечного автомата"/>
-            <ul>
-              <li class="fragment">вход/выход - потоки символов</li>
-              <li class="fragment">ожидания зависят от состояния</li>
-              <li class="fragment">может порождать выход спонтанно</li>
-              <li class="fragment">конечный объём памяти (bounded)</li>
-              <li class="fragment">композиция потоковых обработчиков</li>
-            </ul>
-              <aside class="notes">
-                  <p>Работа в поточном режиме несколько сложнее работы в линейном режиме.
-                      Нам недоступен файл целиком. Приходится строить алгоритм так, что он работает только с
-                      небольшой частью файла.
-                  </p>
-                  <p>Основной вопрос - как разбить на повторно-используемые модули и как их потом объединять.</p>
-              </aside>
-          </section>
-            <section style="text-align: left">
-                <b>Введение. Сеть Петри</b>
-                <p></p>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Detailed_petri_net.png" width="50%" height="50%" alt="Сеть Петри"/>
-                <ul>
-                    <li class="fragment">метки (чёрные точки) - данные</li>
-                    <li class="fragment">места (для меток)</li>
-                    <li class="fragment">переходы (прямоугольники) - обработка</li>
-                    <li class="fragment">граф - двудольный (места -> переходы -> места)</li>
-                </ul>
-            </section>
         </section>
         <section>
           <section style="text-align: left">
-          <b>Пример 1. Числа Фибоначчи (fs2) [IDE]</b>
-          <pre><code class="scala" data-trim>
-    def fib(prev: BigInt, b: BigInt): Stream[Pure, BigInt] =
-        Stream.emit(b) ++ fib(b, prev + b)
-    val fib01 = fib(0, 1)
-          </code></pre>
-            <pre class="fragment"><code class="scala" data-trim>
-    assert(fib01.take(5).toList == List(1, 1, 2, 3, 5))
-          </code></pre>
-            <pre class="fragment"><code class="scala" data-trim>
-    assert(fib01
-        .map(_.pow(2))
-        .filter(_ % 2 == 1)
-        .take(5).toList == List(1, 1, 9, 25, 169)
-    )
-          </code></pre>
-            <pre class="fragment"><code class="scala" data-trim>
-    assert(fib01.drop(55).head.toList ==
-                List(BigInt(225_851_433_717L))
-          </code></pre>
-          <aside class="notes">
-           [IDE] Рассмотрим пример 1. Бесконечный поток чисел Фибоначчи
-          </aside>
+            <b>Reminder: type-level programming</b>
+            <ul>
+              <li class="fragment">pattern matching on types</li>
+              <li class="fragment">recursive types</li>
+              <li class="fragment">inline (compile time ops)</li>
+              <li class="fragment">constValue and constValueTuple, erasedValue, ValueOf</li>
+              <li class="fragment">some limitations (general type projections)</li>
+            </ul>
           </section>
           <section style="text-align: left">
-              <b>Пример 1. Числа Фибоначчи (fs2) (2)</b>
-              <ul>
-                  <li class="fragment">ленивые вычисления</li>
-                  <li class="fragment">бесконечный поток</li>
-                  <li class="fragment">комбинаторы для формирования программы</li>
-                  <li class="fragment">отложенное исполнение</li>
+                <b>type-level pattern matching</b>
+                <pre><code class="scala" data-trim>
+type Element[T] = T match
+  case List[x]   => x
+  case Option[x] => x
+  case String    => Char
+  case _         => Nothing
+          </code></pre>
+          </section>
+          <section style="text-align: left">
+                <b>recursive types</b>
+                <pre><code class="scala" data-trim>
+type Fibonacci[a&lt;:Int, b&lt;:Int, n &lt;:Int] &lt;:Int = n match
+  case 0    => b
+  case S[x] => Fibonacci[b, a + b, x]
+          </code></pre>
+          </section>
+          <section style="text-align: left">
+                <b>transparent inline</b>
+                <pre><code class="scala" data-trim>
+transparent inline def fibonacci[n&lt;:Int](inline a: Int, inline b: Int): Int =
+  inline erasedValue[n] match
+    case _: 0    => b
+    case _: S[x] =>
+      fibonacci[x](b, a + b)
+          </code></pre>
+          </section>
+          <section style="text-align: left">
+              <b>constValue</b>
+              <pre><code class="scala" data-trim>
+val F3: Fibonacci[1,1,3] = constValue
+F3 should equal(5)
+              </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+constValueTuple[(1, "hello")] should equal((1, "hello"))
+              </code></pre>
+          </section>
+          <section style="text-align: left">
+                <b>generic type projection (missing)</b>
+                <pre><code class="scala" data-trim>
+trait Collection:
+  type Element
+type CollectionElement[C&lt;:Collection] = C#Element
+                </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+// type C: C
+// C is not a legal path
+// since it is not a concrete type
+              </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+def collectionElement[C&lt;:Collection](c: C): c.Element = ???
+              </code></pre>
+          </section>
+        </section>
+        <section>
+          <section style="text-align: left">
+            <b>Typed ontology</b>
+            <ul>
+              <li>represent columns/fields/properties using typed objects</li>
+            </ul>
+                <pre><code class="scala" data-trim>
+object Product extends TableBuilder:
+  object id    extends column[Int]
+  object name  extends column[String]
+  object price extends column[BigInt]
+          </code></pre>
+              <ul class="fragment">
+                  <li>object has self type + <code>PropertyId[R, A]</code></li>
+                  <li class="fragment"><code>R = this.type</code> for simplicity</li>
               </ul>
+          </section>
+          <section style="text-align: left">
+            <p><b>Schema</b></p>
+              <ul>
+                  <li>Similar to <code>HList</code> and <code>TupleXXL</code></li>
+              </ul>
+              <pre><code class="scala" data-trim>
+object Product extends TableBuilder:
+  type TableSchema =
+    id.type #: name.type #: price.type #: EmptySchema
+  val tableSchema: TableSchema =
+    id      #: name      #: price      #: EmptySchema
+          </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+infix type #:[P &lt;: RecordProperty0, S &lt;: RecordSchema] =
+  SchemaCons[P, S]
+          </code></pre>
               <aside class="notes">
-                  [IDE] Рассмотрим пример 1. Бесконечный поток чисел Фибоначчи
+                  <p>We construct schema as a tuple</p>
               </aside>
           </section>
-          </section>
-          <section>
-              <section style="text-align: left">
-                  <b>Пример 2. Частота буквы a</b>
-                  <p>Насколько часто встречается буква в словах?</p>
-                  <pre><code class="scala" data-trim>
-    def resourceIO(name: String): IO[InputStream] =
-        IO{getClass.getResourceAsStream(name)}
-
-    val largeFile: Stream[IO, Byte] =
-        fs2.io.readInputStream(resourceIO("large-file.txt"),
-        chunkSize = 4096, closeAfterUse = true)
-          </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Пример 2. Частота буквы a (2)</b>
-                  <pre><code class="scala" data-trim>
-    val wordRegEx = raw"[a-zA-Z]+".r
-
-    def words: fs2.Pipe[IO, String, String] =
-        in => in.flatMap{ line =>
-            Stream.emits(wordRegEx
-                .findAllIn(line)
-                .map(_.toString)
-                .toList)
-        }
-          </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Пример 2. Частота буквы a (3)</b>
-                  <pre><code class="scala" data-trim>
-    val largeFileWords = largeFile
-        .through(text.utf8Decode)
-        .through(text.lines)
-        .through(words)
-          </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Пример 2. Частота буквы a (4)</b>
-                  <pre><code class="scala" data-trim>
-    case class Stat(charCount: Int, length: Int)
-
-    def wordStat(char: Char)(word: String): Stat =
-        Stat(word.count(_ == char), word.length)
-
-    def combine(a: Stat, b: Stat): Stat =
-        Stat(a.charCount + b.charCount, a.length + b.length)
-
-    def freq(a: Stat): Double = a.charCount * 1.0 / a.length
-          </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Пример 2. Частота буквы a (5)</b>
-                  <pre><code class="scala" data-trim>
-    def freqIO(char: Char): IO[Double] =
-        largeFileWords
-            .map(wordStat(char))
-            .fold(Stat(0,0))(combine)
-            .map(freq)
-            .compile.toList.map(_.head)
-          </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Пример 2. Частота буквы a (6)</b>
-                  <a href="https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html">https://www3.nd.edu/~busiforc/handouts/cryptography/letterfrequencies.html</a>
-                  <pre><code class="scala" data-trim>
-    @Test def testLetterFreq: Unit =
-        val freqA = freqIO('a').unsafeRunSync()
-        val expectedFreq = 8.5/100 //
-        assert(math.abs(freqA - expectedFreq) <= 0.01,
-                      s"freqА = $freqА")
-          </code></pre>
-              </section>
-          </section>
-          <section>
-              <section style="text-align: left">
-                  <b>Пример 3. Обнаружение структуры (парсинг)</b>
-                  <ul>
-                      <li>читаем посимвольно</li>
-                      <li class="fragment">переключаемся между состояниями</li>
-                      <li class="fragment">накапливаем промежуточные данные</li>
-                      <li class="fragment">иногда выдаём новую структуру</li>
-                  </ul>
-              </section>
-              <section style="text-align: left">
-                  <b>Пример 3. Обнаружение структуры (парсинг) (2) [IDE]</b>
-
-                  <pre><code class="scala" data-trim>
-  def mapAccumulate[S, O2](init: S)(f: (S, O) => (S, O2)): Stream[F, (S, O2)]
-
-  def parseInQuotes: Pipe[Pure, Char, String] =
-    in => in
-      .mapAccumulate[Option[List[Char]], Option[String]](None: Option[List[Char]]){
-
-   S = Option[List[Char]]
-   O = Char
-   O2 = Option[String]
-
-   init = None - находимся вне кавычек
-                  </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Пример 3. Обнаружение структуры (парсинг) (3)</b>
-                  <pre><code class="scala" data-trim>
-  def parseInQuotes: Pipe[Pure, Char, String] =
-    in => in
-      .mapAccumulate[Option[List[Char]], Option[String]](None: Option[List[Char]]){
-        case (None, '\"') =>      // вне кавычек, обнаружили кавычки
-        case (None, _) =>         // вне кавычек, любой символ
-        case (Some(lst), '\"') => // внутри кавычек, обнаружили кавычки
-        case (Some(lst), char) => // внутри кавычек, любой символ
-      }
-                  </code></pre>
-                  <p class="fragment">ДЗ*: реализовать parseInQuotes с использованием Pull или другого фреймворка (akka-streams, SynapseGrid).</p>
-              </section>
-          </section>
-          <section>
-              <section style="text-align: left">
-                  <b>Часть 3. Граф потоков данных</b>
-                  <img src="https://doc.akka.io/docs/akka/current/images/simple-graph-example.png" alt="Пример системы поточной обработки"/>
-                  <img src="scala-study/FlowSystem.png" alt="Пример системы поточной обработки"/>
-
-              </section>
-              <section style="text-align: left">
-                  <b>Граф потоков данных (SynapseGrid)</b>
-                  <pre><code class="scala" data-trim>
-  // Объявляем систему с одним входом и одним выходом.
-  // Везде указываем текстовые имена,
-  // которые будут отображаться на картинке
-  object FlowSystem extends BaseTypedSystem("FlowSystem"):
-    val in:  Contact[Int] = input("in")
-    val out: Contact[Int] = output("out")
-
-    // строим систему, используя mutable builder.
-    override protected def defineSystem(implicit sb: SystemBuilder): Unit =
-      // два вспомогательных контакта
-      val bcast = contact[Int]("bcast")
-      val merge = contact[Int]("merge")
-      // функции преобразования данных
-      val f1, f2, f3, f4 = (i: Int) => i + 10
-      // соединяем контакты стрелочками и указываем,
-      // какое преобразование надо использовать.
-      (in -> bcast).map(f1, "f1")
-      (bcast -> merge).map(f2, "f2")
-      (bcast -> merge).map(f4, "f4")
-      (merge -> out).map(f3, "f3")
-
-    // Превращаем систему в обычную функцию
-    def f: Int => Iterable[Int] =
-      toDynamicSystem.toTransducer(in, out)
-
-  // используем построенную систему
-  val res = (1 to 3).flatMap(FlowSystem.f)
-                  </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Граф потоков данных (akka-streams)</b>
-                  <pre><code class="scala" data-trim>
-    val flowSystem = GraphDSL.create[FlowShape[Int, Int]](){ implicit builder: GraphDSL.Builder[NotUsed] =>
-      // промежуточные элементы - разветвление и слияние
-      val bcast: UniformFanOutShape[Int, Int] = builder.add(Broadcast[Int](2))
-      val merge: UniformFanInShape[Int, Int]  = builder.add(Merge[Int](2))
-      // конвертеры вход-выход
-      val f1, f2, f3, f4 = Flow[Int].map(_ + 10)
-      // добавляем к системе начальный и конечный конвертер,
-      // чтобы использовать их входы/выходы
-      val f1flow = builder.add(f1)
-      val f3flow = builder.add(f3)
-      // соединяем стрелочками все компоненты
-      f1flow.out ~> bcast
-      bcast ~> f2 ~> merge
-      bcast ~> f4 ~> merge
-      merge ~> f3flow.in
-      // явным образом описываем внешнюю форму системы.
-      FlowShape(f1flow.in, f3flow.out)
-    }
-    // используем построенную систему
-    val sink: Sink[Int, Future[Seq[Int]]] = Sink.seq[Int]
-    given ActorSystem = ActorSystem()
-    val g: Future[Seq[Int]] = Source(1 to 3).via(flowSystem).runWith(sink)
-    val res = Await.result(g, 1.second)
-                  </code></pre>
-              </section>
-              <section style="text-align: left">
-                  <b>Граф потоков данных (fs2)</b>
-                  <pre><code class="scala" data-trim>
-    // Объявляем систему с одним входом и одним выходом.
-    def flowSystem(in: Stream[IO, Int]): Stream[IO, Int] =
-      // конвертеры - Pipe
-      val f1: Pipe[IO, Int, Int] = _.map(_ + 10)
-      val f2, f3, f4 = f1
-      // слияние делается через очередь
-      val mergeS = Stream.eval(Queue.unbounded[IO, Option[Int]])
-      mergeS.flatMap {
-        merge =>
-          f1(in)
-            .broadcastTo(// broadcast - без отдельного компонента.
-              f2.andThen(_.noneTerminate.evalMap(merge.offer).drain),// noneTerminate - чтобы передать служебный сигнал окончания потока данных сквозь очередь.
-              f4.andThen(_.noneTerminate.evalMap(merge.offer).drain),
-            )
-            .merge(//здесь забираем данные из очереди
-              Stream.repeatEval(merge.take).unNoneTerminate // ловим сигнал завершения потока (None)
-            )
-            .through(f3)
-      }
-    // используем построенную систему
-    val res = Stream(1,2,3).through(flowSystem).compile.toList.unsafeRunSync()
-                  </code></pre>
-              </section>
-          </section>
-          <section>
-              <section style="text-align: left">
-                <p><b>Внутреннее устройство FS2</b></p>
-                <a href="https://fs2.io/">fs2.io</a>
+          <section style="text-align: left">
+                <p><b>Instances</b></p>
                 <ul>
-                    <li>внешний DSL формирует FST - конечный автомат с выходом</li>
-                    <li class="fragment">этап конструирования (blueprint) отделён от этапа исполнения</li>
-                    <li class="fragment">Pull/Chunk - основной DSL внутреннего механизма</li>
-                    <li class="fragment">"алгебра" - набор атомарных команд, исполняемый интерпретатором fs2</li>
+                    <li>Parallel to schema we construct Values</li>
                 </ul>
-              </section>
-              <section style="text-align: left">
-                  <p><b>"Алгебры": лирическое отступление</b></p>
-                  <ul>
-                      <li>погружение обычных величин в "алгебру" F[T]</li>
-                      <li class="fragment">комбинирование средствами алгебры (map, flatMap, merge, etc.)</li>
-                      <li class="fragment">возврат из алгебры в обычное пространство</li>
-                  </ul>
-              </section>
-              <section style="text-align: left">
-                  <p><b>"Алгебры": IO</b></p>
-                  <ul>
-                      <li>IO[T] - вычисление, возвращающее величину T (или исключение)</li>
-                      <li class="fragment">комбинаторы позволяют сконструировать будущее вычисление</li>
-                      <li class="fragment">io.unsafeRunSync() - фактически запустить вычисление</li>
-                      <li class="fragment">преимущество - сохранение чистоты функций до последнего момента</li>
-                  </ul>
-              </section>
-              <section style="text-align: left">
-                  <p><b>"Алгебры": Stream</b></p>
-                  <ul>
-                      <li>Stream[IO, T] - абстрактный поток значений типа T, который может быть превращён в вычисление IO[List/Seq/Vector/...[T]]</li>
-                      <li class="fragment">комбинаторы позволяют сконструировать течение значений и их обработку</li>
-                      <li class="fragment">stream.compile.toVector - сформировать вычисление IO[Vector[T]]</li>
-                      <li class="fragment">преимущество - удобные комбинаторы, позволяющие конструировать
-                          сложные алгоритмы обработки</li>
-                  </ul>
-              </section>
-              <section style="text-align: left">
-                  <p><b>Пример take(n) [IDE]</b></p>
-              </section>
-              <section style="text-align: left">
-                  <p><b>Пример асинхронной обработки через очередь [IDE]</b></p>
-              </section>
-              <section style="text-align: left">
-                  <p><b>FS2: merge [IDE]</b></p>
-                  <ul>
-                      <li>расщепление потоков для разных параллельных задач</li>
-                      <li class="fragment">как выполняется слияние?</li>
-                      <li class="fragment">потоки запускаются независимо и результат - в очередь</li>
-                  </ul>
-              </section>
-      </section>
-      <section>
-          <section>
-              <b>Домашнее задание</b>
+                <pre><code class="scala" data-trim>
+trait RecordSchema:
+  type Values = Tuple.Map[Properties, PropertyValue]
+          </code></pre>
+                <ul class="fragment">
+                    <li>Tuple of property values</li>
+                </ul>
+                <pre class="fragment"><code class="scala" data-trim>
+  val product1: Product.tableSchema.Values =
+    (1, "product1", BigInt(5))
+//type TableSchema =
+//  id.type #: name.type #: price.type #: EmptySchema
+          </code></pre>
+                <aside class="notes">
+                    <p>We construct schema values as a tuple of property values</p>
+                </aside>
+            </section>
+            <section style="text-align: left">
+                <p><b>Instances (2)</b></p>
+                <ul>
+                    <li>Typed maps</li>
+                </ul>
+                <pre><code class="scala" data-trim>
+trait TypedMap[M[_]]:
+  def apply[R, P  &lt;: RecordProperty[R]](m: M[R])(p: P):
+    Option[PropertyValueType[p.type]]
+  def updated[R, P &lt;: RecordProperty[R]](m: M[R])(p: P,
+    v: Option[PropertyValueType[p.type]]): M[R]
+          </code></pre>
+                <pre><code class="scala" data-trim>
+opaque type SimpleTypedMap[R] = SortedMap[String, Any]
+          </code></pre>
+                <ul class="fragment">
+                    <li>Tuple of options
+                <pre><code class="scala" data-trim>
+type ValuesMap[H[_]] = Tuple.Map[Values, H]
+type OptionValues = ValuesMap[Option]
+          </code></pre></li>
+                    <li class="fragment">Tuple of eithers
+                        <pre><code class="scala" data-trim>
+type EitherValues[E] = ValuesMap[[V] =>> Either[E, V]]
+          </code></pre></li>
+                </ul>
+                <aside class="notes">
+                    <p>We construct schema values as a tuple of property values</p>
+                </aside>
+          </section>
+        </section>
+        <section>
+          <section style="text-align: left">
+                <b>Relational algebra</b>
+                <p></p>
+                <ul>
+                    <li>relation</li>
+                    <li class="fragment">projection</li>
+                    <li class="fragment">cross product</li>
+                    <li class="fragment">selection</li>
+                    <li class="fragment">join on a foreign key</li>
+                    <li class="fragment">replace, rename</li>
+                </ul>
+          </section>
+          <section style="text-align: left">
+                <b>Relational algebra: relation</b>
+                <p></p>
+              <ul>
+                  <li>relation = schema + data</li>
+              </ul>
+                <pre class="fragment"><code class="scala" data-trim>
+abstract class Relation[V[_]]:
+  type Schema &lt;: RecordSchema
+  val schema: Schema
+  type Row = schema.Values
+  val rows: V[schema.Values]
+         </code></pre>
+          </section>
+          <section style="text-align: left">
+                <b>Relational algebra: projection</b>
+                <p></p>
+                <pre class="fragment"><code class="scala" data-trim>
+  transparent inline def projectorFrom
+    [S1 &lt;: RecordSchema]
+    (inline s1: S1): s1.Values => Values =
+                </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+    val fp = s1.propertyGetter(p)
+    val fschema: s1.Values => schema.Values =
+      schema.projectorFrom(s1)
+    (v: s1.Values) => fp(v) *: fschema(v)
+          </code></pre>
+                <ul>
+                    <li class="fragment">for each property of the target schema
+                        construct a getter from a tuple of values. Then combine into a single tuple.</li>
+                </ul>
+            </section>
+          <section style="text-align: left">
+              <b>Relational algebra: cross product (1)</b>
+              <ul>
+                  <li>concatenate schemas</li>
+              </ul>
+              <pre class="fragment"><code class="scala" data-trim>
+  type AppendOtherSchema[S2 &lt;: RecordSchema] &lt;: RecordSchema
+  transparent inline def appendOtherSchema[S2 &lt;: RecordSchema]
+                  (inline s2: S2): AppendOtherSchema[S2]
+              </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+  type AppendOtherSchema[S2 &lt;: RecordSchema] =
+                  SchemaCons[P, schema.AppendOtherSchema[S2]]
+  transparent inline def appendOtherSchema[S2 &lt;: RecordSchema]
+                  (inline s2: S2): AppendOtherSchema[S2] =
+    p #: schema.appendOtherSchema(s2)
+              </code></pre>
+              <ul>
+                  <li class="fragment">instead of patter matching on types, we use abstract types here</li>
+              </ul>
+          </section>
+          <section style="text-align: left">
+              <b>Relational algebra: cross product (2)</b>
+              <ul>
+                  <li>construct a function that will concatenate values</li>
+              </ul>
+              <p></p>
+              <pre class="fragment"><code class="scala" data-trim>
+  transparent inline def appendValues[S2 &lt;: RecordSchema]
+      (inline schema2: S2)
+      (inline schema3: AppendOtherSchema[S2]):
+      (Values, schema2.Values) => schema3.Values =
+                </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+    (v1, v2) => (v1 ++ v2).asInstanceOf[schema3.Values]
+              </code></pre>
+          </section>
+          <section style="text-align: left">
+              <b>Relational algebra: cross product (3)</b>
+              <ul>
+                  <li>iterate through all pairwise combinations</li>
+              </ul>
+              <pre class="fragment"><code class="scala" data-trim>
+  transparent inline def crossProductFrom[R1 &lt;: Relation[V]]
+      (inline r1: R1)(using FlatMap[V]): Relation[V] =
+                </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+    import cats.FlatMap.ops.toAllFlatMapOps
+    val schema3 = r1.schema.appendOtherSchema(schema)
+    val concatValues: (r1.schema.Values, schema.Values) => schema3.Values =
+      r1.schema.appendValues(schema)(schema3)
+    val vals = 
+      for
+        row1 <- r1.rows
+        row2 <- this.rows
+      yield
+        concatValues(row1, row2)
+    Relation(schema3)(vals)
+              </code></pre>
+          </section>
+          <section style="text-align: left">
+              <b>Relational algebra: join on foreign key</b>
+              <ul>
+                  <li>= cross product + filter</li>
+              </ul>
+              <pre class="fragment"><code class="scala" data-trim>
+  transparent inline def join[FK &lt;: ForeignKeyId0, R2 &lt;: Relation[V]]
+      (inline fk: FK)(inline r2: R2)(using FlatMap[V])(using FunctorFilter[V]) =
+                </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+    import cats.FlatMap.ops.toAllFlatMapOps
+    import cats.FunctorFilter.ops.toAllFunctorFilterOps
+    val schema3 = schema.appendOtherSchema(r2.schema)
+    val concatValues: (schema.Values, r2.schema.Values) => schema3.Values =
+                  schema.appendValues(r2.schema)(schema3)
+    val pred: schema3.Values => Boolean = schema3.fkPredicate(fk)
+    val vals = 
+      for
+        row1 <- this.rows
+        row2 <- r2.rows
+        row3 = concatValues(row1, row2)
+        // if pred(row3)
+      yield
+        row3
+    val filtered = vals.filter(pred)
+    Relation[schema3.type, V](schema3)(filtered)
+              </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+  transparent inline def fkPredicate[FK &lt;: ForeignKeyId0](inline fk: FK): Values => Boolean = 
+                </code></pre>
+              <pre class="fragment"><code class="scala" data-trim>
+    val l = propertyGetter(fk.left)
+    val r = propertyGetter(fk.right)
+    row => l(row) == r(row)
+              </code></pre>
+          </section>
+          <section style="text-align: left">
+                <b>Relational algebra: replace, rename</b>
+                <ul>
+                    <li>match property and replace</li>
+                </ul>
+                <pre class="fragment"><code class="scala" data-trim>
+  transparent inline def replace[P1 &lt;: RecordProperty0, P2 &lt;: RecordProperty0]
+    (inline p1: P1, inline p2: P2): RecordSchema
+              </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+    inline p1 match
+      case `p` => p2 #: schema
+      case _   => p  #: schema.replace(p1, p2)
+              </code></pre>
+                <ul class="fragment">
+                    <li>rename should also maintain
+                        the same type of property value</li>
+                </ul>
+                <pre class="fragment"><code class="scala" data-trim>
+  transparent inline def rename[T, P1 &lt;: RecordProperty[T],
+    P2 &lt;: RecordProperty[T]]
+    (inline p1: P1, inline p2: P2): RecordSchema =
+    replace(p1, p2)
+              </code></pre>
+            </section>
+        </section>
+
+        <section>
+          <section style="text-align: left">
+              <b>Applications</b>
+              <ul>
+                  <li>DB-libraries (Slick-style)</li>
+                  <li class="fragment">big-data frameworks (Spark)</li>
+                  <li class="fragment">Ontology-driven applications
+                      (DB, App, UI - all driven by schema)</li>
+                  <li class="fragment">CQRS (generic change events for entities)</li>
+                  <li class="fragment">immutable history database (version derived from entity)</li>
+              </ul>
               <aside class="notes">
-                  <ul >
-                      <li>Оценка не выставляется. Это учебное задание. Вы представляете исходный код
-                          в репозитории github в виде PR. В качестве основы можно использовать https://github.com/Primetalk/scala-study.
-                          Я даю рецензию на код (код-ревью) и обращаю ваше внимание на то, что можно улучшить.
-                      </li>
-                      <li>После курса другие люди будут давать другие задачи для оценки.
-                          Так что в ваших интересах - решать самостоятельно и попытаться научиться.
-                          Рецензия позволит вам взглянуть на свой код со стороны.</li>
-                  </ul>
               </aside>
           </section>
-          <section>
-              <p>Вариант 1. wc, grep</p>
+          <section style="text-align: left">
+                  <b>Business case: ?</b>
+          </section>
+        </section>
+
+        <section>
+          <section style="text-align: left">
+              <b>Library design (application/library boundary)</b>
               <ul>
-                  <li>Текст больше, чем размер памяти JVM</li>
-                  <li>Linux-команда wc - подсчитывает строки/слова/символы. Читает из std.in.
-                  </li>
-                  <li>Linux-команда grep - фильтрует строки, удовлетворяющие регулярному выражению.
-                  </li>
+                  <li><b>data</b> - application level</li>
+                  <li class="fragment"><b>ontology/schema</b> - application specific schema (entities, attributes, relations,...)</li>
+                  <li class="fragment"><b>meta</b> - application/library instruments to create ontology</li>
+                  <li class="fragment"><b>simple-meta</b> - library where properties just have a string name</li>
+                  <li class="fragment"><b>meta-tools</b> - universal part of the library that supports
+                      creation of different meta implementations</li>
               </ul>
           </section>
-          <section>
-              <p>Вариант 1*. Вариация wc</p>
+        </section>
+
+        <section>
+          <section style="text-align: left">
+              <b>Performance (theoretical)</b>
               <ul>
-                  <li>средняя длина слова;</li>
-                  <li>количество артиклей a, the;</li>
-                  <li>доля слов, начинающихся с заглавной буквы;</li>
-                  <li>количество заметок в скобках (вложенные скобки не считать);</li>
-                  <li class="fragment">нарисовать картинку, описывающую структуру системы</li>
-              </ul>
-          </section>
-          <section>
-              <p>Вариант 2*. Управление потоком</p>
-              <ul>
-                  <li>
-                      Сделать один поток - генерацию текущих моментов времени через каждую секунду.(`.metered`)
-                  </li>
-                  <li>
-                      Сделать второй поток - чтения команд с консоли (on/off).
-                  </li>
-                  <li>
-                      Объединить эти потоки таким образом, что управляющий поток включает и выключает прохождение сигналов времени
-                  </li>
-                  <li>
-                      Результирующий поток вывести в консоль в формате времени чч:мм:сс
+                  <li>compile time - all relational algebra operations happen at compile time</li>
+                  <li class="fragment">runtime - at runtime it's tuple operations</li>
+                  <li class="fragment">potential runtime optimizations:
+                      <ul>
+                          <li>macros for tuple operations</li>
+                          <li class="fragment">case class mapping to use specialization</li>
+                      </ul>
                   </li>
               </ul>
+
           </section>
-          <section>
-              <p>Вариант 3**. Реализовать бота для приложения чата</p>
-              <a href="https://github.com/typelevel/fs2-chat/tree/master/src/main/scala/fs2chat/client">https://github.com/typelevel/fs2-chat/</a>
+        </section>
+
+        <section>
+          <section style="text-align: left">
+              <p><b>Conclusion</b></p>
               <ul>
-                  <li>Fork-нуть пример</li>
-                  <li>Кроме клиента/сервера, реализовать бота, который будет подключаться к серверу, слушать
-                      поток сообщений и при упоминании имени бота (например, Вася), выдавать сообщение.
-                  </li>
+                  <li>relational algebra at type level</li>
+                  <li class="fragment">why it's important?</li>
+                  <li class="fragment">what's the difference from Slick?</li>
+                  <li class="fragment">further plans</li>
               </ul>
+              <aside class="notes">
+                  why it's important?
+                  <ul>
+                      <li>direct mapping of SQL - both forward and backward.
+                          We can construct SQL queries and automatically map results to typed entities.</li>
+                      <li>mathematically defined algebra</li>
+                  </ul>
+                  what's the difference from Slick?
+                  <ul>
+                      <li>not tied to databases, could be used in any other projects, with REST services, etc.</li>
+                      <li>type-level properties (not just property types)</li>
+                      <li>projections are producing flat tuples</li>
+                  </ul>
+
+                  plans
+                  <ul>
+                      <li>json mapping</li>
+                      <li>case class mapping (probably autogeneration?)</li>
+                  </ul>
+
+              </aside>
           </section>
-      </section>
+          </section>
           <section>
               <section>
-                  <b>Ссылки</b>
+                  <b>References</b>
                   <ul>
-                      <li><a href="https://fs2.io/index.html">https://fs2.io/index.html</a></li>
-                      <li><a href="https://github.com/typelevel/fs2">https://github.com/typelevel/fs2</a></li>
-                      <li><a href="http://blog.mikemccandless.com/2013/06/build-your-own-finite-state-transducer.html">http://blog.mikemccandless.com/2013/06/build-your-own-finite-state-transducer.html</a></li>
-                      <li><a href="https://tex.stackexchange.com/questions/254278/adding-finite-state-transducer-fst-in-xelatex">fst-example</a></li>
-                      <li><a href="https://github.com/Primetalk/SynapseGrid">https://github.com/Primetalk/SynapseGrid</a></li>
-                      <li><a href="https://doc.akka.io/docs/akka/current/stream/stream-graphs.html#working-with-graphs">Akka-Streams</a></li>
+                      <li><a href="https://github.com/Primetalk/typed-ontology">https://github.com/Primetalk/typed-ontology</a></li>
                   </ul>
               </section>
             <section style="text-align: left">
 
-                <p><b>Спасибо за внимание</b></p>
+                <p><b>Thank you for watching</b></p>
                 <div class="fragment">
                     <p></p>
-                  <b>Вопросы?</b>
+                  <b>Questions?</b>
                   <p>
-                    <small>Арсений Александрович Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+                    <small>Arseniy Zhizhelev, <a href="https://primetalk.github.io/">Primetalk</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
                   </p>
 
                 </div>
