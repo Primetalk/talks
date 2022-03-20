@@ -2,6 +2,7 @@
 
 ### Talks:
 
+- 2022 Relational algebra in Scala3 [video](https://www.youtube.com/watch?v=lcZ7VVriaq8)
 - 2021 Неизменяемые структуры данных [video](https://youtu.be/mAV2yfUVRZ0)
 - 2021 Gradle: сборка не JVM-проектов [video](https://youtu.be/Fvwgvyva5co)
 - 2020 Компилируемая конфигурация распределённой системы [video](https://youtu.be/eXQByuM4a4Y)
