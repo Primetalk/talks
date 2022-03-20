@@ -79,7 +79,7 @@
           <section style="text-align: left">
             <b>Introduction</b>
             <ul>
-              <li>Praise to Martin Oderski for DOT, Scala3 language design</li>
+              <li>Appreciate Martin Oderski's work for DOT, Scala3 language design</li>
               <li class="fragment">Plan:
                   <ul>
                       <li class="fragment">Type-level programming</li>
@@ -269,6 +269,7 @@ type EitherValues[E] = ValuesMap[[V] =>> Either[E, V]]
                     <li class="fragment">selection</li>
                     <li class="fragment">join on a foreign key</li>
                     <li class="fragment">replace, rename</li>
+                    <li class="fragment">calculate column</li>
                 </ul>
           </section>
           <section style="text-align: left">
@@ -288,6 +289,15 @@ abstract class Relation[V[_]]:
           <section style="text-align: left">
                 <b>Relational algebra: projection</b>
                 <p></p>
+              <ul>
+                  <li>One schema S1 and another one S2 that contains some of the same properties</li>
+                  <li class="fragment">Projection is removing some data from each instance and rearranging the other values</li>
+                  <li class="fragment">We do it from side of schema S2 and select proper elements from S1</li>
+              </ul>
+          </section>
+          <section style="text-align: left">
+                <b>Relational algebra: projection (2)</b>
+                <p></p>
                 <pre class="fragment"><code class="scala" data-trim>
   transparent inline def projectorFrom
     [S1 &lt;: RecordSchema]
@@ -303,7 +313,7 @@ abstract class Relation[V[_]]:
                     <li class="fragment">for each property of the target schema
                         construct a getter from a tuple of values. Then combine into a single tuple.</li>
                 </ul>
-            </section>
+          </section>
           <section style="text-align: left">
               <b>Relational algebra: cross product (1)</b>
               <ul>
@@ -425,6 +435,46 @@ abstract class Relation[V[_]]:
     replace(p1, p2)
               </code></pre>
             </section>
+            <section style="text-align: left">
+                <b>Relational algebra: calculate column</b>
+                <ul>
+                    <li>new column</li>
+                    <li class="fragment">formula for it (function)</li>
+                </ul>
+                <pre class="fragment"><code class="scala" data-trim>
+transparent inline def prependCalcColumn[P &lt;: RecordProperty0]
+  (inline p: P)(inline f: Row => p.P)(using FlatMap[V]) =
+              </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+    val schema3 = p #: schema
+    val vals    = rows.map(row =>
+                    (f(row) *: row)
+                    .asInstanceOf[schema3.Values])
+    Relation(schema3)(vals)
+              </code></pre>
+            </section>
+            <section style="text-align: left">
+                <b>Relational algebra: expressions DSL</b>
+                <ul>
+                    <li>refer to column value just mentioning the name</li>
+                    <li class="fragment">operations</li>
+                    <li class="fragment">convert to a function from `Row =>`</li>
+                </ul>
+                <pre class="fragment"><code class="scala" data-trim>
+    object price extends OrderItem.column[Int]
+    val p = orderItems.
+      prependCalcColumn(price)({
+        import orderItems._
+        rowFun(
+          prop(OrderItem.id) * const(10))
+      })
+              </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+filter(rowFun(
+       prop(orderId) === const(orderIdValue)))
+              </code></pre>
+            </section>
+
         </section>
 
         <section>
@@ -432,7 +482,7 @@ abstract class Relation[V[_]]:
               <b>Applications</b>
               <ul>
                   <li>DB-libraries (Slick-style)</li>
-                  <li class="fragment">big-data frameworks (Spark)</li>
+                  <li class="fragment">big-data frameworks (Spark, Flink)</li>
                   <li class="fragment">Ontology-driven applications
                       (DB, App, UI - all driven by schema)</li>
                   <li class="fragment">CQRS (generic change events for entities)</li>
@@ -440,9 +490,6 @@ abstract class Relation[V[_]]:
               </ul>
               <aside class="notes">
               </aside>
-          </section>
-          <section style="text-align: left">
-                  <b>Business case: ?</b>
           </section>
         </section>
 
