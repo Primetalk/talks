@@ -21,6 +21,7 @@
 
 ### Posts
 
+- 2023-03-05 [Развёртывание программных систем в Kubernetes с помощью Jsonnet](https://habr.com/ru/post/720556/).
 - 2021 Системы сборки
   - 2021-04-05 [Building projects (CI/CD), instruments](https://habr.com/en/post/550548/) [Сборка не JVM-проектов, инструменты](https://habr.com/ru/post/550658/)
   - 2021-04-05 [Build (CI/CD) of non-JVM projects using gradle/kotlin](https://habr.com/en/post/550656/) [Сборка (CI/CD) не-JVM проектов с использованием gradle/kotlin](https://habr.com/ru/post/550654/)
