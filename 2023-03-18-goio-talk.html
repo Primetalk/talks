@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Потоковая обработка данных (Go, goio)</title>
+    <meta name="description" content="Объяснение потоковой обработки данных и обсуждение библиотеки goio">
+
+    <meta name="author" content="Arseniy Zhizhelev">
+
+    <link rel="stylesheet" href="reveal-js/dist/reset.css">
+    <link rel="stylesheet" href="reveal-js/dist/reveal.css">
+    <link rel="stylesheet" href="reveal-js/dist/theme/white.css">
+    <!--    <link rel="stylesheet" href="reveal-js/dist/theme/black.css">-->
+
+    <!-- Theme used for syntax highlighting of code -->
+    <!--    <link rel="stylesheet" href="reveal-js/plugin/highlight/monokai.css">-->
+    <link rel="stylesheet" href="reveal-js/plugin/highlight/zenburn.css">
+    <link rel="stylesheet" href="./main.css">
+
+    <script src="reveal-js/plugin/highlight/highlight.js"></script>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h1>Потоковая обработка данных</h1>
+          <h2>в функциональном стиле на Go</h1>
+          <p>
+            <small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+          </p>
+          <aside class="notes">
+            <p>Сегодня мы рассмотрим обработку потока данных с использованием библиотеки goio.</p>
+          </aside>
+
+        </section>
+<!--
+Аннотация:
+Рассматривается класс задач обработки бесконечных потоков данных 
+(больших файлов, потоков событий, и т.п.) с использованием комбинируемых блоков 
+("трансдьюсеров", конечных автоматов с выходом). 
+Для безопасного решения таких задач предлагается библиотека goio, 
+реализованная по мотивам fs2 и cats-effect.
+
+Цель:
+- ознакомить с концепциями:
+  - потоковой обработки;
+  - модулей, которые работают в потоковом режиме;
+  - способов соединения этих модулей - функции высших порядков, комбинаторов
+- функциональный стиль представления:
+  - один шаг операции - IO
+  - деконструктор потока
+  - поток
+- библиотека goio
+  - пример (добавить в readme библиотеки)
+-->
+        <!--
+        -->
+          <section>
+            <section style="text-align: left">
+              <h3>План</h3>
+              <ul>
+                <li>Введение
+                    <ul>
+                        <li class="fragment">задачи потоковой обработки</li>
+                        <li class="fragment">отличие от пакетной обработки ("main"-style)</li>
+                        <li class="fragment">трансдьюсеры (автоматы с выходом)</li>
+                    </ul>
+                </li>
+                  <li class="fragment">Примеры использования
+<!--                      <ul class="fragment">-->
+<!--                          <li>Числа Фибоначчи</li>-->
+<!--                          <li class="fragment">Частота буквы в словах</li>-->
+<!--                      </ul>-->
+                  </li>
+              </ul>
+              <aside class="notes">
+                <p>
+                  На слайде - примерный план доклада.
+                </p>
+              </aside>
+            </section>
+            <section style="text-align: left">
+              <b>Введение. Задачи потоковой обработки</b>
+              <ul>
+                <li class="fragment">чтение и обработка файла "на лету" (ndjson, csv, ...)</li>
+                <li class="fragment">загрузка и скачивание файлов</li>
+                <li class="fragment">обработка аудио-потока в телефонии</li>
+                <li class="fragment">распознавание речи в поточном режиме</li>
+                <li class="fragment">задачи с минимизацией задержки ответа (latency)</li>
+                <li class="fragment">поток событий (обработка, фильтрация, сохранение, передача дальше)</li>
+                <li class="fragment">веб-сервис с потоком входных запросов</li>
+                <li class="fragment">IoT</li>
+              </ul>
+              <aside class="notes">
+                <p>
+                  Файл больше, чем объём памяти, используемый для обработки отдельных кусочков.
+                  Например, структура данных JSON, записанная в одну строку. 
+                  Мы можем её обработать независимо от других строк. Обработка многоэтапная.
+                </p>
+              </aside>
+            </section>
+
+            <section style="text-align: left">
+              <b>Как решать?</b>
+              <ul>
+                <li class="fragment">монолитный main</li>
+                <li class="fragment">unix-way: потоки текста</li>
+                <li class="fragment">go-way: каналы+горутины</li>
+                <li class="fragment">фреймворки/библиотеки потоковой обработки:
+                  <ul>
+                    <li class="fragment">представление блоков</li>
+                    <li class="fragment">соединение блоков</li>
+                  </ul>
+                </li>
+                <li class="fragment">например, библиотека goio:
+                  <ul>
+                    <li class="fragment">блоки - пользовательские функции</li>
+                    <li class="fragment">соединение блоков - функции высшего порядка, комбинаторы</li>
+                  </ul>
+                </li>
+              </ul>
+              <p class="fragment"></p>
+              <aside class="notes">
+                <p>
+                  Решать потоковые задачи люди умеют уже давно.
+                  Во-первых, никто не мешает написать ad-hoc решение в виде цикла, в котором всё происходит.
+                  Во-вторых, можно использовать обычные потоки ввода-вывода.
+                  В-третьих, Go предлагает каждый блок сделать в виде горутины и связать каналами.
+                  И в-четвёртых, можно использовать библиотеку/фреймворк.
+                  Такой фреймворк должен дать инструменты для создания блоков и для их соединения.
+                </p>
+              </aside>
+            </section>
+          </section>
+          <section>
+            <section style="text-align: left">
+              <b>Конечный автомат с выходом (трансдьюсер)</b>
+              <p></p>
+              <img src="scala-study/fst-example.png" width="400" height="40%" alt="Пример конечного автомата"/>
+              <ul>
+                <li class="fragment">вход/выход - потоки символов</li>
+                <li class="fragment">ожидания зависят от состояния</li>
+                <li class="fragment">может порождать выход спонтанно</li>
+                <li class="fragment">конечный объём памяти (bounded)</li>
+                <li class="fragment">композиция потоковых обработчиков</li>
+              </ul>
+                <aside class="notes">
+                    <p>Работа в поточном режиме несколько сложнее работы в линейном режиме.
+                        Нам недоступен файл целиком. Приходится строить алгоритм так, что он работает только с
+                        небольшой частью файла.
+                    </p>
+                    <p>Основной вопрос - как разбить на повторно-используемые модули и как их потом объединять.</p>
+                    <p>Математика предлагает модель - конечный автомат с выходом, 
+                      принимающий бесконечный поток "символов" на входе и генерирующий бесконечный поток
+                    "символов" на выходе</p>
+                </aside>
+            </section>
+            <section style="text-align: left">
+              <b>Функции высшего порядка (комбинаторы), map</b>
+              <p></p>
+              <pre class="fragment">map[F[_]]:: [A,B] => (A=>B) => F[A] => F[B]</pre>
+              <ul>
+                <li class="fragment">обобщённая (generic) по входным и выходным типам данных <code>[A,B]</code></li>
+                <li class="fragment">на вход принимает функцию <code>(A => B)</code></li>
+                <li class="fragment">работает с <b>функторами</b> <code>F[_]</code> (коллекции <code>List[_]</code>, потоки данных <code>Stream[_]</code>, ...)</li>
+                <li class="fragment">возвращает функцию (или является функцией), преобразующую коллекцию/поток целиком <code>F[A] => F[B]</code></li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <b>Функции высшего порядка (комбинаторы), flatMap (bind)</b>
+              <p></p>
+              <pre class="fragment">flatMap[F[_]]:: [A,B] => F[A] => (A=>F[B]) => F[B]</pre>
+              <pre class="fragment">bind[F[_]]:: [A,B] => (A=>F[B]) => F[A] => F[B]</pre>
+              <ul>
+                <li class="fragment">отличается от <code>map</code> сигнатурой пользовательской функции</li>
+                <li class="fragment">(функтор <code>F[_]</code> с такой операцией называется <b>монадой</b>)</li>
+                <li class="fragment">выразительная сила этого комбинатора огромна</li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <b>Сопоставление с шаблоном, деконструктор</b>
+              <p>Значение <code>F[A]</code> может иметь несколько структурных форм, укладывающихся в шаблоны.
+                Каждую форму можно обработать отдельно.</p>
+              <pre class="fragment">unapply[F[_]]:: [A,B] => F[A] => (*[A]=>B)* => B</pre>
+              <ul>
+                <li class="fragment"><code>(*[A]=>B)*</code> - условное обозначение, несколько функций на все случаи, возможные в <code>F[_]</code></li>
+              </ul>
+            </section>
+           
+            <section style="text-align: left">
+              <b>Сопоставление с шаблоном, примеры</b>
+              <ul>
+                <li class="fragment"><code>List.unapply::[A,B] => List[A] => /*cons*/((A,List[A])=>B), /*nil*/(=>B) => B</code> - структура списка полностью разбирается парой функций - для пустого и непустого списка</li>
+                <li class="fragment"><code>Boolean.unapply::[B] => Boolean => /*true*/(=>B), /*false*/(=>B) => B</code> - if - тоже является деконструктором типа <code>Boolean</code></li>
+                <li class="fragment"><code>enum Enum = e1|e2|e3</code>
+                  <pre>Enum.unapply:: Enum => /*e1*/(=>B), /*e2*/(=>B), /*e3*/(=>B) => B</pre>
+                </li>
+              </ul>
+            </section>
+            <!-- <section style="text-align: left">
+              <b>Функции высшего порядка (комбинаторы), fold*</b>
+              <p></p>
+              <pre class="fragment">fold*[F[_]]:: [A,B] => F[A] => B => (B,A=>B) => B</pre>
+              <ul>
+                <li class="fragment">семейство комбинаторов</li>
+                <li class="fragment">свёртка</li>
+                <li class="fragment"><code>(*[A]=>B)*</code> - условное обозначение, несколько функций на все случаи, возможные в <code>F[_]</code></li>
+            </section> -->
+            <section style="text-align: left">
+              <b>Кодирование трансдьюсера функцией</b>
+              <ul>
+                <li class="fragment">входной алфавит - <code>A</code></li>
+                <li class="fragment">выходной алфавит - <code>B</code></li>
+                <li class="fragment">состояние - <code>S</code></li>
+                <li class="fragment">поток символов - <code>F[_]</code></li>
+              </ul>
+              <p class="fragment">трансдьюсер:</p>
+              <pre class="fragment">A => S => (S, F[B])</pre>
+              <ul>
+                <li class="fragment">по входному символу</li>
+                <li class="fragment">и состоянию</li>
+                <li class="fragment">порождает состояние и (небольшой) выходной поток</li>
+              </ul>
+            </section>
+          </section>
+          <section>
+            <section style="text-align: left">
+              <p><b>"Алгебры": лирическое отступление</b></p>
+              <ul>
+                  <li>погружение обычных величин в "алгебру" F[T]</li>
+                  <li class="fragment">комбинирование средствами алгебры (map, flatMap, merge, etc.)</li>
+                  <li class="fragment">возврат из алгебры в обычное пространство</li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <p><b>"Алгебры": IO</b></p>
+              <ul>
+                  <li><code>IO[T]</code> - вычисление, возвращающее величину <code>T</code> (или исключение)</li>
+                  <li class="fragment">комбинаторы позволяют сконструировать будущее вычисление</li>
+                  <li class="fragment"><code>io.UnsafeRunSync(iot)</code> - фактически запустить вычисление</li>
+                  <li class="fragment">преимущество - сохранение чистоты функций до последнего момента</li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <p><b>"Алгебры": Stream</b></p>
+              <ul>
+                  <li><code>Stream[T]</code>  - абстрактный поток значений типа <code>T</code>, который может быть превращён в вычисление <code>io.IO[[]T]</code></li>
+                  <li class="fragment">удобные комбинаторы, позволяющие конструировать
+                      сложные алгоритмы обработки</li>
+                  <li class="fragment">возврат в обычное пространство - запись в файл, возврат потока по http, побочные эффекты, генерация событий</li>
+                    
+              </ul>
+            </section> 
+          </section>
+          <section>
+            <section style="text-align: left">
+              <b>Библиотека goio</b>
+              <ul>
+                <li class="fragment">по мотивам cats, fs2</li>
+                <li class="fragment">кроме потоков - IO, Pair, slice.*, sets.*, ...</li>
+                <li class="fragment">безопасный шаг вычислений - <code>IO[A]</code></li>
+                <li class="fragment">поток - <code>Stream[A]</code></li>
+                <li class="fragment">ограничения Go</li>
+              </ul>
+              <aside class="notes">
+                <p>
+                  Нетрудно обработать поток. Трудно сделать хорошую библиотеку.
+                  fs2 - хорошая библиотека.
+                  Перенести в go - не так то просто. generics появились только год назад в 1.18.
+                  Ограничения - нет возможности сделать вторичный generic.
+                  В частности, у функций внутри интерфейсов - нет параметров типа.
+                  Ещё одно ограничение - нет "типов-функций".   
+                </p>
+              </aside>
+            </section>
+            <section style="text-align: left">
+              <b>Библиотека goio. IO[A]</b>
+              <pre>
+type IO[A any] Continuation[A]
+type Continuation[A any] func() ResultOrContinuation[A]
+type ResultOrContinuation[A any] struct {
+	Value        A
+	Error        error
+	Continuation *Continuation[A]
+}
+</pre>
+              <ul>
+                <li class="fragment">шаг - либо успешный, либо ошибка</li>
+                <li class="fragment">panic - в ошибку</li>
+                <li class="fragment"><code>Continuation[A]</code> - для "трамполайнинга"</li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <b>Библиотека goio. Stream[A]</b>
+              <pre>
+func StreamFold[A any, B any](
+  stm Stream[A],
+  onFinish func() io.IO[B],
+  onValue func(a A, tail Stream[A]) io.IO[B],
+  onEmpty func(tail Stream[A]) io.IO[B],
+  onError func(err error) io.IO[B],
+) io.IO[B] 
+</pre>
+              <ul>
+                <li class="fragment">каждый шаг - безопасный <code>IO</code></li>
+                <li class="fragment">деконструктор потока</li>
+                <li class="fragment">поток может завершиться</li>
+                <li class="fragment">может породить один символ</li>
+                <li class="fragment">может сработать вхолостую</li>
+                <li class="fragment">может выдать ошибку</li>
+              </ul>
+            </section>
+            <section style="text-align: left">
+              <b>Библиотека goio. Stream[A]. реализация</b>
+              <pre>
+type Stream[A any] io.IO[StepResult[A]]
+type StepResult[A any] struct {
+  Value        A
+  HasValue     bool // models "Option[A]"
+  Continuation Stream[A]
+  IsFinished   bool // true when stream has completed
+}
+</pre>
+              <ul>
+                <li class="fragment">шаг <code>IO</code> порождает либо ошибку, либо результат</li>
+                <li class="fragment">результат
+                  <ul>
+                    <li class="fragment">конец потока</li>
+                    <li class="fragment">один символ</li>
+                    <li class="fragment">пусто</li>
+                  </ul>
+                </li>
+              </ul>
+            </section>
+          </section>
+          <section>
+            <section style="text-align: left">
+              <b>Пример 1. Числа Фибоначчи (fs2)</b>
+              <pre><code class="scala" data-trim>
+        def fib(prev: BigInt, b: BigInt): Stream[Pure, BigInt] =
+            Stream.emit(b) ++ fib(b, prev + b)
+        val fib01 = fib(0, 1)
+              </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+        assert(fib01.take(5).toList == List(1, 1, 2, 3, 5))
+              </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+        assert(fib01
+            .map(_.pow(2))
+            .filter(_ % 2 == 1)
+            .take(5).toList == List(1, 1, 9, 25, 169)
+        )
+              </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+        assert(fib01.drop(55).head.toList ==
+                    List(BigInt(225_851_433_717L))
+              </code></pre>
+              <aside class="notes">
+               [IDE] Рассмотрим пример 1. Бесконечный поток чисел Фибоначчи
+              </aside>            
+            </section>
+            <section style="text-align: left">
+              <b>Пример 1. Числа Фибоначчи (goio)</b>
+              <pre><code class="go" data-trim>
+func Fib(prev int, b int) Stream[int] {
+  return AndThenLazy(Emit(b), func() Stream[int] {
+    return Fib(b, prev+b)
+  })
+}
+</code></pre>
+                <pre class="fragment"><code class="go" data-trim>
+var fibs01 = stream.Fib(0, 1)
+
+func TestFibs(t *testing.T) {
+	powered := stream.Map(fibs01, pow2)
+	filtered := stream.FilterNot(powered, isEven)
+	filtered5 := stream.Take(filtered, 5)
+	expected := []int{1, 1, 9, 25, 169}
+	assert.ElementsMatch(t, expected, UnsafeStreamToSlice(t, filtered5))
+}
+</code></pre>
+                <pre class="fragment"><code class="go" data-trim>
+hIO := stream.Head(stream.Drop(fib01, 55))
+assert.Equal(t, int64(225851433717), UnsafeIO(t, hIO))
+</code></pre>
+            </section>
+            <section style="text-align: left">
+              <b>Пример 1. Числа Фибоначчи (3)</b>
+              <ul>
+                  <li class="fragment">ленивые вычисления</li>
+                  <li class="fragment">бесконечный поток, вычисляемый на лету</li>
+                  <li class="fragment">комбинаторы для формирования программы</li>
+                  <li class="fragment">отложенное исполнение</li>
+              </ul>
+            </section>
+        </section>
+        <section>
+          <section style="text-align: left">
+            <b>Возможности библиотеки goio</b>
+            <ul>
+              <li class="fragment">строго типизированный код</li>
+              <li class="fragment">гарантия корректной обработки ошибок</li>
+              <li class="fragment">обработка бесконечных потоков с постоянной памятью (GC)</li>
+              <li class="fragment">сборка программы комбинаторами из пользовательских функций</li>
+              <li class="fragment">параллельная обработка</li>
+            </ul>
+            <b class="fragment">Недочёты (возможности улучшения)</b>
+            <ul>
+              <li class="fragment">закрытие ресурсов по окончании потока</li>
+              <li class="fragment">производительность. На один элемент потока: 31 выделение памяти, 1Киб, 1.4 мкс</li>
+            </ul>
+          </section>
+
+          <section style="text-align: left">
+            <b>Заключение</b>
+            <ul>
+              <li class="fragment">поточные библиотеки до generic'ов - не очень удобны</li>
+              <li class="fragment">благодаря generic'ам в язык Go стал более высокоуровневым</li>
+              <li class="fragment">goio - используется в реальном приложении</li>
+              <li class="fragment">класс задач обработки данных с минимальными задержками (данные обрабатываются по мере поступления)</li>
+            </ul>
+          </section>
+
+        </section>
+
+        <section>
+          <section>
+            <b>Ссылки</b>
+            <ul>
+              <li><a href="https://github.com/Primetalk/goio/">https://github.com/Primetalk/goio/</a></li>
+              <li><a href="https://fs2.io/index.html">https://fs2.io/index.html</a></li>
+              <li><a href="https://github.com/typelevel/fs2">https://github.com/typelevel/fs2</a></li>
+              <li><a href="http://blog.mikemccandless.com/2013/06/build-your-own-finite-state-transducer.html">http://blog.mikemccandless.com/2013/06/build-your-own-finite-state-transducer.html</a></li>
+              <li><a href="https://tex.stackexchange.com/questions/254278/adding-finite-state-transducer-fst-in-xelatex">fst-example</a></li>
+              <li><a href="https://github.com/Primetalk/SynapseGrid">https://github.com/Primetalk/SynapseGrid</a></li>
+              <li><a href="https://doc.akka.io/docs/akka/current/stream/stream-graphs.html#working-with-graphs">Akka-Streams</a></li>
+            </ul>
+          </section>
+          <section style="text-align: left">
+
+            <p><b>Спасибо за внимание</b></p>
+            <div class="fragment">
+              <p></p>
+              <b>Вопросы?</b>
+              <p>
+                <small>Арсений Александрович Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+              </p>
+            </div>
+          </section>
+        </section>
+      </div>
+    </div>
+
+    <script src="reveal-js/dist/reveal.js"></script>
+    <script src="reveal-js/plugin/zoom/zoom.js"></script>
+    <script src="reveal-js/plugin/notes/notes.js"></script>
+    <script src="reveal-js/plugin/search/search.js"></script>
+    <script src="reveal-js/plugin/markdown/markdown.js"></script>
+    <script src="reveal-js/plugin/highlight/highlight.js"></script>
+    <script>
+
+        // Also available as an ES module, see:
+        // https://revealjs.com/initialization/
+        Reveal.initialize({
+            history: true,
+            controls: true,
+            progress: true,
+            center: true,
+            hash: true,
+            slideNumber: true,
+            // showNotes: true,
+
+            // Learn about plugins: https://revealjs.com/plugins/
+            plugins: [ RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight ]
+        });
+
+    </script>
+  </body>
+</html>

@@ -2,6 +2,7 @@
 
 ### Talks:
 
+- 2023-03-18 [Потоковая обработка данных в функциональном стиле на Go](2023-03-18-goio-talk.html).
 - 2022 Relational algebra in Scala3 [video](https://www.youtube.com/watch?v=lcZ7VVriaq8)
 - 2021 Неизменяемые структуры данных [video](https://youtu.be/mAV2yfUVRZ0)
 - 2021 Gradle: сборка не JVM-проектов [video](https://youtu.be/Fvwgvyva5co)
@@ -22,6 +23,7 @@
 ### Posts
 
 - 2023-03-05 [Развёртывание программных систем в Kubernetes с помощью Jsonnet](https://habr.com/ru/post/720556/).
+- 2022-05-23 [Потоковая обработка данных в go](https://habr.com/ru/post/667164/).
 - 2021 Системы сборки
   - 2021-04-05 [Building projects (CI/CD), instruments](https://habr.com/en/post/550548/) [Сборка не JVM-проектов, инструменты](https://habr.com/ru/post/550658/)
   - 2021-04-05 [Build (CI/CD) of non-JVM projects using gradle/kotlin](https://habr.com/en/post/550656/) [Сборка (CI/CD) не-JVM проектов с использованием gradle/kotlin](https://habr.com/ru/post/550654/)
