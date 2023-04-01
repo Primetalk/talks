@@ -87,10 +87,10 @@ type AnyTrue[list] = list match
 type AbsDiff[a, b] = (a, b) match
   case (S[a1], S[b1]) =>
     AbsDiff[a1, b1]
-  case (S[a1], Zero) =>
-    S[a1]
-  case (Zero, S[b1]) =>
-    S[b1]
+  case (a, Zero) =>
+    a
+  case (Zero, b) =>
+    b
   case _ => Nothing
 ```
 и сравнение чисел:
