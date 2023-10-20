@@ -291,7 +291,8 @@
         <section style="text-align: left">
           <b>Введение. Тесты</b>
           <ul>
-            <li class="fragment">юнит-тесты (модульные тесты)</li>
+            <li class="fragment">приёмочные тесты</li>
+            <li class="fragment">юнит-тесты (модульные тесты), интеграционные, функциональные тесты</li>
             <li class="fragment">property-based тесты (проверка свойств)</li>
             <li class="fragment">и другие</li>
           </ul>
@@ -362,6 +363,7 @@
                 case _: S[x] =>
                   fibonacci[x](b, a + b)
           </code></pre>
+          <i class="fragment">(8 ферзей)</i>
           <aside class="notes">
             <ul>
               <li>
@@ -414,7 +416,7 @@
                 - неправильный набор аргументов функций;
                 - несовместимые типы данных в одном выражении (причём некоторые языки в рантайме это проглатывают и
                 втихаря выдают какой-то неожиданный результат);
-                - использование неинициализированных переменных (при включенной опции `-Ysafe-init`);
+                - использование неинициализированных переменных (при включенной опции <code>-Ysafe-init</code>);
                 - ...
 
               </li>
@@ -439,7 +441,7 @@
                   val identity: [A] => A => A = [A] => (a: A) => a
                 </code></pre>
               </li>
-              <li class="fragment">универсальные функции `map`, `flatMap`, `foldLeft`, `traverse`, ...</li>
+              <li class="fragment">универсальные функции <code>map</code>, <code>flatMap</code>, <code>foldLeft</code>, <code>traverse</code>, ...</li>
             </ul>
             <p class="fragment strikeout">Тесты?</p>
             <ul>
@@ -469,7 +471,7 @@
           </aside>
         </section>
         <section style="text-align: left">
-          <b>Типы 2. sealed trait'ы и enum</b>
+          <b>Типы 2. sealed trait'ы и enum (АДТ)</b>
           <div>
             <ul>
               <li class="fragment">точная передача семантики (bool -> enum)</li>
@@ -642,7 +644,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
             </code></pre>
             <ul>
               <li class="fragment">пример Никиты Волкова (Haskell)</li>
-              <li class="fragment">функция не содержит кода `n≤0`</li>
+              <li class="fragment">функция не содержит кода <code>n≤0</code></li>
             </ul>
             <p class="fragment strikeout">Тесты?</p>
             <ul>
@@ -664,6 +666,19 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
               </li>
             </ul>
           </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 4. Refined-типы (SMT)</b>
+          <div>
+            <ul>
+              <li class="fragment">экспериментальное расширение: вызов SMT-солвера</li>
+              <li class="fragment">доказательство теорем об алгоритмах</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">корректности алгоритма</li>
+            </ul>
+          </div>
         </section>
       </section>
       <section style="text-align: left">
@@ -692,7 +707,6 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
                 что побочный эффект был выполнен
                 (сообщение сохранено в логе)</li>
             </ul>
-            <p class="fragment"></p>
           </div>
           <aside class="notes">
             <ul>
@@ -752,7 +766,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
           <div>
             <ul>
               <li class="fragment">несколько квитанций — как агрегировать/проверить?</li>
-              <li class="fragment">конструктор Tuple — `*:`</li>
+              <li class="fragment">конструктор Tuple — <code>*:</code></li>
               <li class="fragment">(библиотека type-sets)</li>
             </ul>
             <p class="fragment strikeout">Тесты?</p>
@@ -839,7 +853,7 @@ trait Monoid[T]:
 
             <ul>
               <li class="fragment">без недостатков наследования реализации</li>
-              <li class="fragment">реализация для существующих типов (стандартных, `final`, библиотечных)</li>
+              <li class="fragment">реализация для существующих типов (стандартных, <code>final</code>, библиотечных)</li>
               <li class="fragment">* структурированные экземпляры на основе сложных типов</li>
               <pre class="fragment"><code class="scala" data-trim>
 given tupleMonoid[A, B &lt;: Tuple](using ma: Monoid[A], mb: Monoid[B]): Monoid[A *: B] = 
@@ -1016,11 +1030,11 @@ given tupleMonoid[A, B &lt;: Tuple](using ma: Monoid[A], mb: Monoid[B]): Monoid[
         <section>
           <b>Ссылки</b>
           <ul>
-            <li><a href="https://github.com/Primetalk/type-sets">https://github.com/Primetalk/type-sets</a>
-            </li>
-            <li><a href="https://github.com/Primetalk/typed-ontology">https://github.com/Primetalk/typed-ontology</a>
-            </li>
-            <li><a href="https://github.com/fthomas/refined">https://github.com/fthomas/refined</a></li>
+            <li><a href="https://github.com/Primetalk/type-sets">https://github.com/Primetalk/type-sets</a> библиотека, реализующая множество в пространстве типов</li>
+            <li><a href="https://github.com/Primetalk/typed-ontology">https://github.com/Primetalk/typed-ontology</a> библиотека типизированной онтологии</li>
+            <li><a href="https://github.com/fthomas/refined">https://github.com/fthomas/refined</a> библиотека для refined-типов</li>
+            <li><a href="https://habr.com/ru/articles/725462/">https://habr.com/ru/articles/725462/</a> Решение задачи о 8 ферзях на трёх уровнях Scala — программа, типы, метапрограмма</li>
+            
           </ul>
         </section>
         <section style="text-align: left">
