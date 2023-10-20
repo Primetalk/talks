@@ -233,7 +233,7 @@
           <p>
             <span class="fragment"><b>Качественная программа</b></span><span class="fragment"> — (1)
               <b>достигает</b></span><span class="fragment"> (2) <b>требуемого результата</b></span><span
-              class="fragment">(3) с соблюдением заданных <b>ограничений</b></span><span class="fragment"> и (4)
+              class="fragment"> (3) с соблюдением заданных <b>ограничений</b></span><span class="fragment"> и (4)
               <b>минимизирует</b> <b>целевую функцию</b>.</span>
           </p>
           <aside class="notes">
@@ -479,7 +479,6 @@
             <p class="fragment strikeout">Тесты?</p>
             <ul>
               <li class="fragment strikeout">тесты исключений</li>
-              <li class="fragment strikeout"></li>
             </ul>
             <p class="fragment strikeout">Не тестируемые проблемы</p>
             <ul>
@@ -501,6 +500,30 @@
               <li>
                 количество тестов напрямую не снижается.
                 Однако решаются проблемы, которые и нельзя протестировать.
+              </li>
+              <li>
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 2. sealed trait'ы (рельсовое программирование)</b>
+          <div>
+            <ul>
+              <li class="fragment">Either[Error, A] вместо исключений</li>
+            </ul>
+            <img class="fragment" src="Recipe_Railway_Transparent.png"/>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">тесты ветвлений</li>
+              <li class="fragment strikeout">тесты обработки ошибок</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+              </li>
+              <li>
               </li>
               <li>
               </li>
@@ -536,11 +559,11 @@
           <aside class="notes">
             <ul>
               <li>
-                Null - это проблема на миллиард долларов.
+                Null — это проблема на миллиард долларов.
                 По-хорошему, надо проверить каждую функцию, как она себя
                 ведёт при null аргументах. Причём каждый аргумент
                 может принимать значение null или не null. Т.е.
-                количество путей - 2^M.
+                количество путей — 2^M.
               </li>
               <li>
                 Т.к. нет наследования реализации, отпадает необходимость
@@ -563,7 +586,7 @@
             </code></pre>
             <ul>
               <li class="fragment">предикат проверяется на этапе компиляции</li>
-              <li class="fragment">(для runtime'а - Either)</li>
+              <li class="fragment">(для runtime'а — Either)</li>
             </ul>
             <p class="fragment strikeout">Тесты?</p>
             <ul>
@@ -652,7 +675,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
             <pre><code class="scala" data-trim>
                 sealed trait LogReceipt // почти `Unit` 
                 def log(message: String): IO[LogReceipt] =
-                  IO{...}// побочный эффект - сохранение сообщения во внешнюю систему
+                  IO{...}// побочный эффект — сохранение сообщения во внешнюю систему
                     .as(new LogReceipt{})
               </code></pre>
             <ul>
@@ -690,7 +713,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
             <pre><code class="scala" data-trim>
                 sealed trait SavedToDBReceipt[A]
                 def saveToDB[A](a: A): IO[SavedToDBReceipt[A]] =
-                  IO{...}// побочный эффект - сохранение в БД
+                  IO{...}// побочный эффект — сохранение в БД
                     .as(new SavedToDBReceipt[A]{})
               </code></pre>
             <div class="fragment">
@@ -698,7 +721,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
               <pre><code class="scala" data-trim>
                   opaque type DBGeneratedID[A] = Long
                   def saveToDB[A](a: A): IO[DBGeneratedID[A]] =
-                    IO{...}// побочный эффект - сохранение в БД с возвратом ID
+                    IO{...}// побочный эффект — сохранение в БД с возвратом ID
                       .map(id => id : DBGeneratedID[A])
                 </code></pre>
             </div>
@@ -719,7 +742,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
                 "запечатанный" тип, специфичный именно для этой библиотеки.
               </li>
               <li>
-                ID из БД - убедительная штука.
+                ID из БД — убедительная штука.
               </li>
             </ul>
           </aside>
@@ -728,8 +751,8 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
           <b>Типы 5. sealed-квитанции 3 (несколько)</b>
           <div>
             <ul>
-              <li class="fragment">несколько квитанций - как агрегировать/проверить?</li>
-              <li class="fragment">конструктор Tuple - `*:`</li>
+              <li class="fragment">несколько квитанций — как агрегировать/проверить?</li>
+              <li class="fragment">конструктор Tuple — `*:`</li>
               <li class="fragment">(библиотека type-sets)</li>
             </ul>
             <p class="fragment strikeout">Тесты?</p>
@@ -744,7 +767,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
                 квитанций.
               </li>
               <li>
-                На уровне типов можем использовать естественную "коллекцию типов" - Tuple.
+                На уровне типов можем использовать естественную "коллекцию типов" — Tuple.
               </li>
               <li>
                 Библиотека type-sets предоставляет несколько инструментов
@@ -760,8 +783,8 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
               def fewSteps(): IO[Set3[LogReceipt, SavedToDBReceipt[Person], SavedToDBReceipt[Product]]] =
                 for
                   logReceipt   <- log("")
-                  savedPerson  <- save(person)
-                  savedProduct <- save(product)
+                  savedPerson  <- saveToDB(person)
+                  savedProduct <- saveToDB(product)
                 yield
                   Set(logReceipt, savedPerson, savedProduct)
             </code></pre>
@@ -786,7 +809,7 @@ def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
                 Производитель возвращает все побочные эффекты
               </li>
               <li>
-                На уровне типов можем использовать естественную "коллекцию типов" - Tuple.
+                На уровне типов можем использовать естественную "коллекцию типов" — Tuple.
               </li>
               <li>
                 Библиотека type-sets предоставляет несколько инструментов
@@ -902,8 +925,8 @@ given tupleMonoid[A, B &lt;: Tuple](using ma: Monoid[A], mb: Monoid[B]): Monoid[
           <b>Типы 7. Типизированная онтология (2)</b>
           <div>
             <ul>
-              <li class="fragment">онтология - совокупность свойств, сущностей, отношений</li>
-              <li class="fragment">проекция - структура данных, содержащая часть информации о сущности</li>
+              <li class="fragment">онтология — совокупность свойств, сущностей, отношений</li>
+              <li class="fragment">проекция — структура данных, содержащая часть информации о сущности</li>
             </ul>
             <pre class="fragment"><code class="scala" data-trim>
               abstract final class Person
@@ -940,7 +963,7 @@ given tupleMonoid[A, B &lt;: Tuple](using ma: Monoid[A], mb: Monoid[B]): Monoid[
           <b>Типы 7. Типизированная онтология (3 Реляционная алгебра)</b>
           <div>
             <ul>
-              <li class="fragment">схема сущностей - Entity-Relationship</li>
+              <li class="fragment">схема сущностей — Entity-Relationship</li>
               <li class="fragment">все операции реляционной алгебры:
                 <ul>
                   <li class="fragment">проекция</li>
@@ -975,17 +998,18 @@ given tupleMonoid[A, B &lt;: Tuple](using ma: Monoid[A], mb: Monoid[B]): Monoid[
           <b>Как типы позволяют избавляться от тестов?</b>
           <ul>
             <li class="fragment">доказательство корректности программ (гарантии)</li>
-            <li class="fragment">уменьшение количества кода</li>
-            <li class="fragment">упрощение функций, уменьшение ветвления</li>
+            <li class="fragment">уменьшение количества кода (дженерики)</li>
+            <li class="fragment">упрощение функций, 
+              уменьшение ветвления</li>
           </ul>
         </section>
 
         <section style="text-align: left">
           <b>Заключение</b>
           <ul>
-            <li class="fragment">развитые типы</li>
-            <li class="fragment">залог качества ПО</li>
-            <li class="fragment">тесты — помогают, когда в типах не получилось выразить всё, что нужно</li>
+            <li class="fragment">тесты — огромный вклад в качество ПО</li>
+            <li class="fragment">развитые типы  — ещё лучше, гарантии</li>
+            <li class="fragment">тесты помогают, когда в типах не получилось выразить все ограничения</li>
           </ul>
         </section>
 
@@ -996,7 +1020,7 @@ given tupleMonoid[A, B &lt;: Tuple](using ma: Monoid[A], mb: Monoid[B]): Monoid[
             </li>
             <li><a href="https://github.com/Primetalk/typed-ontology">https://github.com/Primetalk/typed-ontology</a>
             </li>
-            <li><a href="https://github.com/Primetalk/SynapseGrid">https://github.com/Primetalk/SynapseGrid</a></li>
+            <li><a href="https://github.com/fthomas/refined">https://github.com/fthomas/refined</a></li>
           </ul>
         </section>
         <section style="text-align: left">
