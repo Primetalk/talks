@@ -2,7 +2,8 @@
 
 ### Talks:
 
-- 2023-03-18 [Потоковая обработка данных в функциональном стиле на Go](2023-03-18-goio-talk.html).
+- 2023-10-20 [Типы vs. тесты](2023-09-28-types-vs-tests.html)
+- 2023-03-18 [Потоковая обработка данных в функциональном стиле на Go](2023-03-18-goio-talk.html) (Митап в Тинькоффе, без видеозаписи).
 - 2022 Relational algebra in Scala3 [video](https://www.youtube.com/watch?v=lcZ7VVriaq8)
 - 2021 Неизменяемые структуры данных [video](https://youtu.be/mAV2yfUVRZ0)
 - 2021 Gradle: сборка не JVM-проектов [video](https://youtu.be/Fvwgvyva5co)
