@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>Типы versus тесты</title>
+  <meta name="description"
+    content="Использование типов данных при разработке программ, позволяющее уменьшить потребность в тестах">
+
+  <meta name="author" content="Arseniy Zhizhelev">
+
+  <link rel="stylesheet" href="reveal-js/dist/reset.css">
+  <link rel="stylesheet" href="reveal-js/dist/reveal.css">
+  <link rel="stylesheet" href="reveal-js/dist/theme/white.css">
+  <!--    <link rel="stylesheet" href="reveal-js/dist/theme/black.css">-->
+
+  <!-- Theme used for syntax highlighting of code -->
+  <!--    <link rel="stylesheet" href="reveal-js/plugin/highlight/monokai.css">-->
+  <link rel="stylesheet" href="reveal-js/plugin/highlight/zenburn.css">
+  <link rel="stylesheet" href="./main.css">
+
+  <script src="reveal-js/plugin/highlight/highlight.js"></script>
+  <style>
+    .strikeout {
+      text-decoration: line-through
+    }
+
+    .code {
+      font-family: monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section>
+        <h1>Типы vs. тесты</h1>
+        <h2>или</h2>
+        <h2>приёмы программирования, позволяющие писать меньше тестов</h2>
+        <p>
+          <small><a href="http://primetalk.ru/">Арсений Жижелев, Праймтолк</a> / <a
+              href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+        </p>
+        <aside class="notes">
+          <p>Некоторые приёмы, основанные на развитых типах данных,
+            которые позволяют тратить меньше усилий на тестирование</p>
+          <p>
+            Анонс:
+
+            Типы vs. тесты
+            ==============
+            Или
+            ---
+            Как развитые типы позволяют избавиться от лишних тестов
+            -------------------------------------------------------
+
+            Идея тестирования программного обеспечения завоевала множество сторонников и
+            благодаря широкому применению юнит-тестов качество программ заметно выросло.
+            Однако, написание тестов требует дополнительных ресурсов и
+            может даже замедлить процесс разработки.
+            Возможно, стоит соблюдать баланс между тестами и другими механизмами обеспечения
+            качества.
+
+            Современное функциональное программирование делает доступным
+            очень мощный способ построения корректных программ.
+            Для моделирования данных и организации кода
+            можно использовать некоторые возможности системы типов, которые позволяют
+            строить корректно работающие программы без излишнего тестирования.
+
+            В докладе будет рассмотрено несколько примеров на языках Scala и Haskell,
+            позволяющих представить открывающиеся возможности.
+
+            Об авторе
+
+            Арсений Жижелев
+            Scala архитектор, Праймтолк
+
+            В индустрии разработки ПО более 15 лет,
+            разработчик прикладного ПО, архитектор информационных систем.
+            Участвовал и руководил разработкой нескольких проектов, включая распределённые
+            высоконагруженные облачные системы.
+
+            Опубликовал ряд библиотек с открытым исходным кодом — goio,
+            SynapseGrid, slick-migrations.
+            Горячий сторонник строго-типизированного функционального подхода
+            к программированию.
+
+          </p>
+        </aside>
+
+      </section>
+      <!--
+  слоган: Как развитые типы позволяют уменьшить необходимое количество тестов
+Аннотация:
+Рассматриваются ряд приёмов, уменьшающих потребность в тестах.
+Начинаем с использования компилятора — основа гарантий.
+
+Цель:
+- ознакомить с несколькими типами
+- лейтмотив — какого рода тесты больше не нужны.
+
+План:
+1. Компилятор — наш главный помощник. Перечень ошибок, от которых он спасает.
+  Тесты, проверяющие запуск.
+  Покрытие — не нужно.
+2.
+3. Дженерики и Безошибочные программы.
+
+
+1. Дженерики — защищают от ошибок.
+   — identity 
+   — достаточно проверить для какого-то одного типа
+
+   
+   — map — универсальный механизм
+
+   — flatMap? filter? foldLeft?
+   — ?параллельное программирование, Applicative
+
+2. Дженерики уменьшают количество кода.
+   — дженерики — меньше кода за счёт повторного использования.
+    Следовательно — меньше тестов.
+
+2. Возврат "результата" побочного действия.
+   — квитанция
+   — закрытые типы для квитанций (opaque — для экономии на boxing'е; но лучше — sealed trait)
+
+   (1) В тестах не обязательно залезать в базу данных за подтверждением. Сама функция возвращает квитанцию.
+   (2) Сами тесты не нужны, т.к. наличие компилируемого кода, возвращающего квитанцию для входных данных,
+   является конструктивным доказательством корректности функции.
+
+3. Имплиситы — подтягивание экземпляров по типу. 
+   В т.ч. по дженерикам.
+   В т.ч. генерация требуемых экземпляров налету функциями.
+   На такой технологии вообще можно делать программирование на типах.
+   Например, разрешать или не разрешать определённые манипуляции,
+   исходя из сложной разрешительной логики.
+
+3.2 Тайпклассы.
+   — Пример — сортировка + Ordered[T]
+   
+3. sealed trait'ы — алгебраические типы данных — enum'ы
+   — enum вместо boolean
+   (1) гарантия того, что семантика не будет перепутана
+   (2) 
+   — односвязный список,
+   — дерево
+   — модель предметной области
+   — either — гарантия только одного из двух путей
+
+   компилятор проверяет полноту покрытия. (Ещё бы запретить общий случай `_` ...)
+
+   Количество путей в любом алгоритме, использующем АДТ, в точности равно количеству вариантов.
+
+4. Рельсовое программирование — линейный прямой путь и библиотечная обработка ошибок.
+   — нет необходимости тестировать обработку ошибок, 
+     т.к. библиотека предоставляет гарантии
+   — ["железнодорожно-ориентированного" программирования](https://habr.com/ru/articles/339606/)
+5. Явный Null — позволяет практически гарантировать отсутствие `null` в остальном коде, 
+   где нет `Null`.
+   Ну или Option.
+6. Refined-типы
+   — за счёт ограничения диапазонов, ряд ошибок исключаются
+     примеры 
+     — Positive
+     — NonEmpty строка https://github.com/fthomas/refined
+     — Url — дефектный URL
+4. фантомные типы — метки, выражающие некоторую семантику
+
+7. Типизированная онтология — single source of truth.
+
+
+7. ?IO — это хороший тип или не очень? Отложенные вычисления. Удобно для эффектов
+   — плюс — разграничение входов и выходов
+   — цепочка
+   — минус — несовместимость с другими монадами
+
+9. Почему типы позволяют избавляться от тестов?
+
+10. Заключение
+   — ти 
+
+
+
+Доклад Некрасова Константина:
+
+-   Юнит-тесты и зачем их писать.
+-   Плюсы/минусы языков с сильной типизацией 
+    (привет другим докладчикам) в контексте обеспечения качества.
+-   Социальные аспекты инженерных подходов. Паттерны ООП — 
+    это технология для социального взаимодействия между разработчиками.
+    Писать код можно было бы и без них, но...
+
+
+Какие unit-тесты можно считать хорошими, а какие плохими
+Примеры сложных типов данных, которые на этапе компиляции позволяют провалидировать функционал
+
+-->
+      <!--
+        -->
+      <section>
+        <section style="text-align: left">
+          <h3>План</h3>
+          <ul>
+            <li>Введение
+              <ul>
+                <li class="fragment">качество программ</li>
+                <li class="fragment">тесты</li>
+                <li class="fragment">типы</li>
+              </ul>
+            </li>
+            <li class="fragment">Примеры типов, уменьшающих потребность в тестах
+              <ul>
+                <li class="fragment">дженерики</li>
+                <li class="fragment">refined</li>
+                <li class="fragment">"квитанции"</li>
+                <li class="fragment">онтология</li>
+              </ul>
+            </li>
+            <li class="fragment">Заключение</li>
+          </ul>
+          <aside class="notes">
+            <p>
+              На слайде — примерный план доклада. Обсудим дженерики, квитанции и другие типы.
+            </p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Введение. Качество ПО</b>
+          <p>
+            <span class="fragment"><b>Качественная программа</b></span><span class="fragment"> — (1)
+              <b>достигает</b></span><span class="fragment"> (2) <b>требуемого результата</b></span><span
+              class="fragment">(3) с соблюдением заданных <b>ограничений</b></span><span class="fragment"> и (4)
+              <b>минимизирует</b> <b>целевую функцию</b>.</span>
+          </p>
+          <aside class="notes">
+            <p>
+              "качество ПО". Как много в этих словах заключено :)
+              Я — сторонник такого определения
+              **Качественная программа** — (1) **достигает** (2) **требуемого результата** с соблюдением (3) заданных
+              **ограничений** и (4) **минимизирует** (5) **целевую функцию**. Причём *ограничения* и *целевая функция*
+              могут относиться не к самой программе, а к процессу её разработки.
+
+              Типичные ограничения (3):
+              — язык программирования/платформа;
+              — набор библиотек;
+              — стиль кодирования;
+              — ограничения предметной области (например, секретность);
+              — производительность (не ниже уровня);
+              — способности (знания, навыки) команды;
+              — ...
+
+              В качестве целевой функции (5) можно рассматривать:
+              — финансовые показатели:
+              — инвестиции (время/стоимость разработки);
+              — стоимость владения;
+              — стоимость (потенциальная) последующего развития/расширения функционала;
+              — срок готовности ПО;
+              — количество строк кода;
+              — количество багов в течение опытного периода эксплуатации;
+              — производительность (время — деньги);
+              — задержки (latency);
+              — "степень удовлетворённости";
+              — ...
+
+              Сами тесты обычно не входят ни в целевую функцию, ни в ограничения. Т.е. тесты не являются целью
+              разработки ПО, а могут служить средством достижения каких-либо целей. Например, с помощью теста можно в
+              какой-то степени проверить, достигает ли программа требуемого результата при определённых входных
+              значениях.
+
+              Иногда (на мой взгляд, ошибочно) тесты включают в ограничения: "покрытие тестами должно быть не ниже 70%"
+              или "все возвращаемые ошибки должны быть проверены". А иногда (ещё более, на мой взгляд, ошибочно) — в
+              целевую функцию: "код максимально покрыт тестами".
+
+              Можно ли выразить требуемый результат (2) в форме приёмочных тестов? Несмотря на общую веру в приёмочные
+              тесты, требуемый результат, вообще говоря, невозможно описать одними лишь тестами. Программа по
+              определению имеет бо́льшую общность, иначе её можно было бы заменить таблицей с параметрами приёмочных
+              тестов.
+
+              Т.к. задача останова является неразрешимой, то, по-видимому, нельзя ожидать от тестов и ответа на вопрос
+              достижимости (1) какого-либо результата. Тем не менее, обычно факт завершения программы для каких-то
+              входных значений рассматривают как косвенный признак, позволяющий надеяться, что программа завершается
+              всегда.
+
+            </p>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Введение. Тесты</b>
+          <ul>
+            <li class="fragment">юнит-тесты (модульные тесты)</li>
+            <li class="fragment">property-based тесты (проверка свойств)</li>
+            <li class="fragment">и другие</li>
+          </ul>
+          <aside class="notes">
+            <ul>
+              <li>
+                юнит-тест —
+                конструирует небольшую систему, включающую тестируемый код,
+                проверяет соответствие табличной функции.
+                Системы разного масштаба — от небольших функций, до крупных подсистем.
+                Причём тестируемая система может наполовину состоять из специальных
+                "строительных лесов". Может включать базу данных, или внешние сервисы.
+                Главное — чёткие границы системы, воспроизводимость начального состояния,
+                детерминированность процессов.
+              </li>
+              <li>
+                property-based тесты — генерируют экземпляры, удовлетворяющие типам.
+                По-сути, проверяют какие-то соотношения/свойства, которые не удалось
+                выразить в самих типах, либо которые осознанно не представлены в типах.
+              </li>
+              <li>и другие виды тестов, которые мы оставляем за рамками рассмотрения</li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Введение. Типы в Scala</b>
+          <ul>
+            <li class="fragment">DOT</li>
+            <li class="fragment">синглетонные типы — <code>1</code>, <code>""</code> </li>
+            <li class="fragment"><code>A & B</code>, <code>A | B</code> </li>
+            <li class="fragment">типы функций <code>A => B</code></li>
+            <li class="fragment">контекстные функции <code>Context ?=> A => B</code></li>
+            <li class="fragment">полиморфные функции <code>[A] => List[A] => B</code></li>
+            <li class="fragment">функции в пространстве типов <code>[X, Y] =>> Map[Y, X]</code> (лямбды в пространстве типов)</li>
+          </ul>
+          <aside class="notes">
+            <ul>
+              <li>
+                система типов в Scala весьма разнообразна.
+                Есть развесистая страничка https://ktoso.github.io/scala-types-of-types/
+                И не все они одинаково полезны.
+              </li>
+              <li>
+                В Scala 3 систему типов причесали на основе DOT — это что-то вроде лябмда-исчисления,
+                но дополненного типами, основанными на значениях.
+              </li>
+              <li>
+                Некоторые интересные типы:
+                — синглетоны, пересечение и объединение, контекстные, полиморфные функции. Функции в пространстве типов.
+                На функциях в пространстве типов можно написать настоящую программу.
+                На хабре есть заметка про 8 ферзей.
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Введение. Типы в Scala (пример)</b>
+          <pre><code class="scala" data-trim>
+            type Fibonacci[a &lt;: Int, b &lt;: Int, n &lt;: Int] &lt;: Int = n match
+              case 0    => b
+              case S[x] => Fibonacci[b, a + b, x]
+          </code></pre>
+          <b>реализация</b>
+          <pre><code class="scala" data-trim>
+            transparent inline def fibonacci[n &lt;: Int](inline a: Int, inline b: Int): Int =
+              inline erasedValue[n] match
+                case _: 0    => b
+                case _: S[x] =>
+                  fibonacci[x](b, a + b)
+          </code></pre>
+          <aside class="notes">
+            <ul>
+              <li>
+                система типов в Scala весьма разнообразна.
+                Есть развесистая страничка https://ktoso.github.io/scala-types-of-types/
+                И не все они одинаково полезны.
+              </li>
+              <li>
+                В Scala 3 систему типов причесали на основе DOT — это что-то вроде лябмда-исчисления,
+                но дополненного типами, основанными на значениях.
+              </li>
+              <li>
+                Некоторые интересные типы:
+                — синглетоны, пересечение и объединение, контекстные, полиморфные функции. Функции в пространстве типов.
+                На функциях в пространстве типов можно написать настоящую программу.
+                На хабре есть заметка про 8 ферзей.
+              </li>
+            </ul>
+          </aside>
+        </section>
+      </section>
+      <section>
+        <section style="text-align: left">
+          <b>Типы 0. Компилятор</b>
+          <ul>
+            <li class="fragment">каждая строка кода проходит компиляцию</li>
+            <li class="fragment">опечатки</li>
+            <li class="fragment">неправильные аргументы функций</li>
+            <li class="fragment">несовместимые типы в одном выражении</li>
+          </ul>
+          <div class="strikeout">
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">100% покрытие</li>
+              <li class="fragment strikeout">тесты API (изменение состава аргументов)</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                Прежде, чем говорить о неких продвинутых типах,
+                следует остановиться на самых обыкновенных. От чего нас защищает компилятор
+              </li>
+              <li>
+
+                Есть несколько классов ошибок, которые преследуют разработчиков на интерпретируемых языках с
+                динамической типизацией:
+                - опечатки;
+                - вызов несуществующих функций;
+                - неправильный набор аргументов функций;
+                - несовместимые типы данных в одном выражении (причём некоторые языки в рантайме это проглатывают и
+                втихаря выдают какой-то неожиданный результат);
+                - использование неинициализированных переменных (при включенной опции `-Ysafe-init`);
+                - ...
+
+              </li>
+              <li>Тестировать все вышеприведённые случаи — нет необходимости.
+                И нет необходимости в 100% покрытии.</li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 1. Дженерики</b>
+          <div>
+            <ul>
+              <li class="fragment">обобщённая функция широко применима</li>
+              <li class="fragment">некоторые функции определены типом однозначно ("параметричность")
+                <pre class="fragment"><code class="scala" data-trim>
+                  def f[A](a: A): A = ???
+                </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+                  val f: [A] => A => A = ???
+                </code></pre>
+                <pre class="fragment"><code class="scala" data-trim>
+                  val identity: [A] => A => A = [A] => (a: A) => a
+                </code></pre>
+              </li>
+              <li class="fragment">универсальные функции `map`, `flatMap`, `foldLeft`, `traverse`, ...</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">для каждого типа данных</li>
+              <li class="fragment strikeout">меньше кода — меньше тестов</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                уже одно то, что функция работает с любыми типами, делает её более универсальной.
+              </li>
+              <li>
+                наличие дженериков накладывает сильные требования на то,
+                как мы можем реализовать функцию.
+                В частности, с самими данными мы ничего не можем сделать
+                (разве что используя тайп-классы или функции,
+                передаваемые как аргументы).
+              </li>
+              <li>
+                моя любимая функция — identity
+              </li>
+              <li>Благодаря дженерикам мы можем не тестировать функцию для всех типов.
+                Также за счёт универсальности, пишется банально меньше кода.
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 2. sealed trait'ы и enum</b>
+          <div>
+            <ul>
+              <li class="fragment">точная передача семантики (bool -> enum)</li>
+              <li class="fragment">закрытый список вариантов</li>
+              <li class="fragment">Either[Error, A] вместо исключений</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">тесты исключений</li>
+              <li class="fragment strikeout"></li>
+            </ul>
+            <p class="fragment strikeout">Не тестируемые проблемы</p>
+            <ul>
+              <li class="fragment strikeout">расширение enum при рефакторинге</li>
+              <li class="fragment strikeout">непредусмотренная обработка каких-либо случаев</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                универсальный тип boolean не отражает специфическую
+                семантику при использовании.
+                Если в одном выражении или в аргументах
+                встречается несколько таких значений, это может
+                приводить к непониманию и потенциальным ошибкам.
+                Простой альтернативой, улучшающей читабельность,
+                является enum из двух значений.
+              </li>
+              <li>
+                количество тестов напрямую не снижается.
+                Однако решаются проблемы, которые и нельзя протестировать.
+              </li>
+              <li>
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 3. явный <span class="code">Null</span></b>
+          <div>
+            <pre class="fragment"><code class="scala" data-trim>
+              val x: String | Null = null // ok
+
+              -Yexplicit-nulls
+            </code></pre>
+            <ul>
+              <li class="fragment">похоже на Kotlin</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">проверка на null
+                всех N функций и
+                всех комбинаций M аргументов <span class="code">O(N*2^M)</span></li>
+            </ul>
+            <pre class="fragment"><code class="scala" data-trim>
+              def foo(a: A|Null, b: B|Null): Int = (a, b) match
+                case (null, null) => 0
+                case (null,    _) => 1
+                case (   _, null) => 2
+                case _            => 3
+              def bar(a: A, b: B): Int = 3
+            </code></pre>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                Null - это проблема на миллиард долларов.
+                По-хорошему, надо проверить каждую функцию, как она себя
+                ведёт при null аргументах. Причём каждый аргумент
+                может принимать значение null или не null. Т.е.
+                количество путей - 2^M.
+              </li>
+              <li>
+                Т.к. нет наследования реализации, отпадает необходимость
+                в шаманских практиках по доступу к приватным переменным.
+              </li>
+              <li>
+                И не надо тестировать, как будут вести себя protected-методы
+                при переопределении в потомках.
+              </li>
+            </ul>
+          </aside>
+        </section>
+
+        <section style="text-align: left">
+          <b>Типы 4. Refined-типы</b>
+          <div>
+            <pre class="fragment"><code class="scala" data-trim>
+              type PortNumber = Int Refined And[Not[Less[0]], Less[65536]]
+              val a: String Refined NonEmpty = refineMV[NonEmpty]("a")
+            </code></pre>
+            <ul>
+              <li class="fragment">предикат проверяется на этапе компиляции</li>
+              <li class="fragment">(для runtime'а - Either)</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">выхода за границы</li>
+              <li class="fragment strikeout">проверка синтаксиса регулярных выражений, URL, IP-адресов, XPath-выражений
+              </li>
+              <li class="fragment strikeout">коллекция не пустая,
+                все элементы удовлетворяют предикату</li>
+              <li class="fragment strikeout">обработка некорректных входных данных для нетотальной функции</li>
+            </ul>
+            <p class="fragment">Дополнительные возможности</p>
+            <ul>
+              <li class="fragment">доказательство теорем с использованием SMT</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                Типы снабжаются дополнительной частью, содержащей предикат.
+                Предикат проверяется на этапе компиляции. Также можно использовать
+                рантайм-проверку для значений, неизвестных на этапе компиляции.
+              </li>
+              <li>
+                Отпадает необходимость в тестах, проверяющих поведение функций,
+                если аргументы выходят за поддерживаемый диапазон.
+              </li>
+              <li>
+
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 4. Refined-типы (total)</b>
+          <div>
+            <ul>
+              <li class="fragment">функция, принимающая refined-тип, может быть сделана тотальной</li>
+            </ul>
+            <pre class="fragment"><code class="scala" data-trim>
+def slice(n: Int Refined Positive): [A] => List[A] => List[List[A]] =
+  [a] => (lst: List[a]) => 
+    val (init, tail) = lst.splitAt(n)
+    if tail.isEmpty then
+      List(init)
+    else
+      init :: slice(n)(tail)
+            </code></pre>
+            <pre class="fragment"><code class="haskell" data-trim>
+              // http://nikita-volkov.github.io/refined/
+              slice :: Refined Positive Int -> [a] -> [[a]]
+              slice n l =
+                splitAt (unrefine n) l & \(a, b) -> a : slice n b            
+            </code></pre>
+            <ul>
+              <li class="fragment">пример Никиты Волкова (Haskell)</li>
+              <li class="fragment">функция не содержит кода `n≤0`</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">проверка входных данных</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                refined-типы позволяют сделать функцию тотальной.
+                Без этого, пришлось бы возвращать ошибку, 
+                либо функция была бы некорректной.
+              </li>
+              <li>
+                Никита Волков разработал библиотеку Refined для Haskell.
+              </li>
+              <li>
+
+              </li>
+            </ul>
+          </aside>
+        </section>
+      </section>
+      <section style="text-align: left">
+
+        <section style="text-align: left">
+          <b>Типы 5. sealed-квитанции (*new)</b>
+          <div>
+            <p>в библиотеке:</p>
+            <pre><code class="scala" data-trim>
+                sealed trait LogReceipt // почти `Unit` 
+                def log(message: String): IO[LogReceipt] =
+                  IO{...}// побочный эффект - сохранение сообщения во внешнюю систему
+                    .as(new LogReceipt{})
+              </code></pre>
+            <ul>
+              <li class="fragment">невозможно получить экземпляр квитанции без исполнения эффекта</li>
+              <!-- <li class="fragment">наличие экземпляра гарантирует, что побочный эффект был выполнен</li> -->
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">проверка наличия сообщения в логе</li>
+            </ul>
+            <ul>
+              <li class="fragment">
+                наличие LogReceipt в типе гарантирует,
+                что побочный эффект был выполнен
+                (сообщение сохранено в логе)</li>
+            </ul>
+            <p class="fragment"></p>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                при написании библиотеки мы можем реализовать
+                "запечатанный" тип, специфичный именно для этой библиотеки.
+
+              </li>
+              <li>
+
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 5. sealed-квитанции 2 (generic)</b>
+          <div>
+            <pre><code class="scala" data-trim>
+                sealed trait SavedToDBReceipt[A]
+                def saveToDB[A](a: A): IO[SavedToDBReceipt[A]] =
+                  IO{...}// побочный эффект - сохранение в БД
+                    .as(new SavedToDBReceipt[A]{})
+              </code></pre>
+            <div class="fragment">
+              <p></p>
+              <pre><code class="scala" data-trim>
+                  opaque type DBGeneratedID[A] = Long
+                  def saveToDB[A](a: A): IO[DBGeneratedID[A]] =
+                    IO{...}// побочный эффект - сохранение в БД с возвратом ID
+                      .map(id => id : DBGeneratedID[A])
+                </code></pre>
+            </div>
+            <ul>
+              <li class="fragment">универсальная квитанция</li>
+              <li class="fragment">ID из БД => дополнительная уверенность</li>
+              <li class="fragment">generic-параметр позволяет убедиться, что мы сохранили именно то, что хотели</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">проверка сохранения в БД для каждой сущности</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                при написании библиотеки мы можем реализовать
+                "запечатанный" тип, специфичный именно для этой библиотеки.
+              </li>
+              <li>
+                ID из БД - убедительная штука.
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 5. sealed-квитанции 3 (несколько)</b>
+          <div>
+            <ul>
+              <li class="fragment">несколько квитанций - как агрегировать/проверить?</li>
+              <li class="fragment">конструктор Tuple - `*:`</li>
+              <li class="fragment">(библиотека type-sets)</li>
+            </ul>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">проверка наличия результатов нескольких эффектов</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                при использовании квитанций возникает вопрос, что делать, если имеется несколько
+                квитанций.
+              </li>
+              <li>
+                На уровне типов можем использовать естественную "коллекцию типов" - Tuple.
+              </li>
+              <li>
+                Библиотека type-sets предоставляет несколько инструментов
+                для работы с такими коллекциями как со множествами.
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 5. sealed-квитанции 5 (код)</b>
+          <div>
+            <pre><code class="scala" data-trim>
+              def fewSteps(): IO[Set3[LogReceipt, SavedToDBReceipt[Person], SavedToDBReceipt[Product]]] =
+                for
+                  logReceipt   <- log("")
+                  savedPerson  <- save(person)
+                  savedProduct <- save(product)
+                yield
+                  Set(logReceipt, savedPerson, savedProduct)
+            </code></pre>
+
+            <pre><code class="scala" data-trim>
+              def handle(): IO[Unit] = 
+                for
+                  receipts <- fewSteps()
+                  _        = setEquals[Set3[
+                    SavedToDBReceipt[Product], 
+                    LogReceipt, 
+                    SavedToDBReceipt[Person]
+                  ]](receipts)
+                  _        = setIsASuperset[Set1[LogReceipt]]
+                yeild
+                  Http.SuccessOk
+            </code></pre>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                Производитель возвращает все побочные эффекты
+              </li>
+              <li>
+                На уровне типов можем использовать естественную "коллекцию типов" - Tuple.
+              </li>
+              <li>
+                Библиотека type-sets предоставляет несколько инструментов
+                для работы с такими коллекциями как со множествами.
+                В частности, ensure проверяет на этапе компиляции,
+                что множества совпадают.
+                Или, что множество включает интересующие нас квитанции.
+              </li>
+            </ul>
+          </aside>
+        </section>
+      </section>
+      <section style="text-align: left">
+        <section style="text-align: left">
+          <b>Типы 6. параметрический полиморфизм (type class'ы)</b>
+          <div>
+            <pre><code class="scala" data-trim>
+trait Monoid[T]:
+  def empty: T
+  def combine(t1: T, t2: T): T
+            </code></pre>
+            <pre><code class="Haskell" data-trim>
+              class Monoid t where
+                mempty :: t
+                mappend :: t -> t -> t
+            </code></pre>
+
+            <ul>
+              <li class="fragment">без недостатков наследования реализации</li>
+              <li class="fragment">реализация для существующих типов (стандартных, `final`, библиотечных)</li>
+              <li class="fragment">* структурированные экземпляры на основе сложных типов</li>
+              <pre class="fragment"><code class="scala" data-trim>
+given tupleMonoid[A, B &lt;: Tuple](using ma: Monoid[A], mb: Monoid[B]): Monoid[A *: B] = 
+  new Monoid[A *: B]:
+    def empty: A *: B = ma.empty *: mb.empty
+    def combine(t1: A *: B, t2: A *: B): A *: B = 
+      ma.combine(t1.head, t2.head) *: mb.combine(t1.tail, t2.tail)
+              </code></pre>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+              </li>
+              <li>
+              </li>
+              <li>
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 6. параметрический полиморфизм (<span class="strikeout">тесты?</span>)</b>
+          <div>
+            <ul>
+              <li class="fragment strikeout">алгоритм + тайп-класс (N x M => N + M)</li>
+              <li class="fragment strikeout">модификация доступа к private полям (т.к. нет наследования реализации)</li>
+              <li class="fragment strikeout">переопределение protected-методов</li>
+            </ul>
+            <p class="fragment">вклад в качество</p>
+            <ul>
+              <li class="fragment">чёткая "математическая" граница модулей</li>
+              <li class="fragment">уменьшение количества кода за счёт комбинаторики</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+                общее уменьшение количества тестов за счёт комбинаторики
+              </li>
+              <li>
+                Т.к. нет наследования реализации, отпадает необходимость
+                в шаманских практиках по доступу к приватным переменным.
+              </li>
+              <li>
+                И не надо тестировать, как будут вести себя protected-методы
+                при переопределении в потомках.
+              </li>
+            </ul>
+          </aside>
+        </section>
+
+      </section>
+      <section>
+        <section style="text-align: left">
+          <b>Типы 7. Типизированная онтология (1)</b>
+          <div>
+            <ul>
+              <li class="fragment">разные представления одной сущности</li>
+              <li class="fragment">конвертация</li>
+              <li class="fragment">полнота? корректность?</li>
+            </ul>
+            <pre class="fragment"><code class="scala" data-trim>
+              case class Person1(name: String)
+              case class Person2(id: Int, name: String)
+              def convert(p2: Person2): Person1 = Person1(p2.name)
+              def convert(id: Int, p1: Person1): Person2 = Person2(id, p1.name)
+            </code></pre>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+              </li>
+              <li>
+              </li>
+              <li>
+
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 7. Типизированная онтология (2)</b>
+          <div>
+            <ul>
+              <li class="fragment">онтология - совокупность свойств, сущностей, отношений</li>
+              <li class="fragment">проекция - структура данных, содержащая часть информации о сущности</li>
+            </ul>
+            <pre class="fragment"><code class="scala" data-trim>
+              abstract final class Person
+              object personProps extends RecordSchemaBuilder[Person]:
+                val id = property[Int]("id")
+                val name = property[String]("name")
+                val Schema1 = fields(name)
+                val Schema2 = fields(id, name)
+              val bs1 = personProps.Schema1
+              val bs2 = personProps.Schema2
+              val person1: bs1.Values = bs1.values(("Vasya"))
+              val person2: bs2.Values = bs2.values((20, "Vasya"))
+              val lst1 = List(person2).projection(personProps.Schema1)
+            </code></pre>
+            <p class="fragment strikeout">Тесты?</p>
+            <ul>
+              <li class="fragment strikeout">проверка корректности конвертации данных</li>
+              <li class="fragment strikeout">тесты общих механизмов для каждой сущности</li>
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+              </li>
+              <li>
+              </li>
+              <li>
+
+              </li>
+            </ul>
+          </aside>
+        </section>
+        <section style="text-align: left">
+          <b>Типы 7. Типизированная онтология (3 Реляционная алгебра)</b>
+          <div>
+            <ul>
+              <li class="fragment">схема сущностей - Entity-Relationship</li>
+              <li class="fragment">все операции реляционной алгебры:
+                <ul>
+                  <li class="fragment">проекция</li>
+                  <li class="fragment">полное произведение</li>
+                  <li class="fragment">выбор (фильтрация)</li>
+                  <li class="fragment">join (по внешнему ключу)</li>
+                  <li class="fragment">переименование и вычисление колонок</li>
+                </ul>
+              </li>
+              <li class="fragment">построение корректных SQL-like запросов</li>
+              <li class="fragment">event-sourcing приложения (события сущности)</li>
+              <li class="fragment">сквозная типизация во всех слоях</li>
+              
+            </ul>
+          </div>
+          <aside class="notes">
+            <ul>
+              <li>
+              </li>
+              <li>
+              </li>
+              <li>
+
+              </li>
+            </ul>
+          </aside>
+        </section>
+      </section>
+
+      <section>
+        <section style="text-align: left">
+          <b>Как типы позволяют избавляться от тестов?</b>
+          <ul>
+            <li class="fragment">доказательство корректности программ (гарантии)</li>
+            <li class="fragment">уменьшение количества кода</li>
+            <li class="fragment">упрощение функций, уменьшение ветвления</li>
+          </ul>
+        </section>
+
+        <section style="text-align: left">
+          <b>Заключение</b>
+          <ul>
+            <li class="fragment">развитые типы</li>
+            <li class="fragment">залог качества ПО</li>
+            <li class="fragment">тесты — помогают, когда в типах не получилось выразить всё, что нужно</li>
+          </ul>
+        </section>
+
+        <section>
+          <b>Ссылки</b>
+          <ul>
+            <li><a href="https://github.com/Primetalk/type-sets">https://github.com/Primetalk/type-sets</a>
+            </li>
+            <li><a href="https://github.com/Primetalk/typed-ontology">https://github.com/Primetalk/typed-ontology</a>
+            </li>
+            <li><a href="https://github.com/Primetalk/SynapseGrid">https://github.com/Primetalk/SynapseGrid</a></li>
+          </ul>
+        </section>
+        <section style="text-align: left">
+
+          <p><b>Спасибо за внимание</b></p>
+          <div class="fragment">
+            <p></p>
+            <b>Вопросы?</b>
+            <p>
+              <small>Арсений Александрович Жижелев, <a href="http://primetalk.ru/">Праймтолк</a> / <a
+                  href="mailto:zhizhelev@primetalk.ru">zhizhelev@primetalk.ru</a></small>
+            </p>
+          </div>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <script src="reveal-js/dist/reveal.js"></script>
+  <script src="reveal-js/plugin/zoom/zoom.js"></script>
+  <script src="reveal-js/plugin/notes/notes.js"></script>
+  <script src="reveal-js/plugin/search/search.js"></script>
+  <script src="reveal-js/plugin/markdown/markdown.js"></script>
+  <script src="reveal-js/plugin/highlight/highlight.js"></script>
+  <script>
+
+    // Also available as an ES module, see:
+    // https://revealjs.com/initialization/
+    Reveal.initialize({
+      history: true,
+      controls: true,
+      progress: true,
+      center: true,
+      hash: true,
+      slideNumber: true,
+      // showNotes: true,
+
+      // Learn about plugins: https://revealjs.com/plugins/
+      plugins: [RevealZoom, RevealNotes, RevealSearch, RevealMarkdown, RevealHighlight]
+    });
+
+  </script>
+</body>
+
+</html>
